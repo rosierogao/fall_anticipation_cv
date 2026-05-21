@@ -88,7 +88,7 @@ def extract_vjepa_latents(
 @app.function(
     image=image,
     volumes={DATA_ROOT: volume},
-    gpu="L4",
+    gpu="A100",
     timeout=60 * 60 * 4,
 )
 def train_vjepa_predictive(
