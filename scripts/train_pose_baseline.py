@@ -11,6 +11,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--feature-col", default="pose_feature_path")
     parser.add_argument("--checkpoint", default="outputs/pose_gru_baseline.pt")
     parser.add_argument("--metrics", default="outputs/pose_gru_metrics.json")
+    parser.add_argument(
+        "--model",
+        choices=["gru", "transformer"],
+        default="transformer",
+        help="Temporal model to train on pose features.",
+    )
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--hidden-dim", type=int, default=128)
@@ -140,7 +146,10 @@ def main() -> None:
     import torch.optim as optim
 
     from fall_anticipation_cv.data import split_by_subject
-    from fall_anticipation_cv.models.pose_baseline import PoseGRUBaseline
+    from fall_anticipation_cv.models.pose_baseline import (
+        PoseGRUBaseline,
+        PoseTransformerBaseline,
+    )
 
     checkpoint = Path(args.checkpoint)
     metrics_path = Path(args.metrics)
@@ -162,11 +171,20 @@ def main() -> None:
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = PoseGRUBaseline(
-        input_dim=input_dim,
-        hidden_dim=args.hidden_dim,
-        num_layers=args.num_layers,
-    ).to(device)
+    if args.model == "gru":
+        model = PoseGRUBaseline(
+            input_dim=input_dim,
+            hidden_dim=args.hidden_dim,
+            num_layers=args.num_layers,
+        ).to(device)
+        model_name = "pose_gru_baseline"
+    else:
+        model = PoseTransformerBaseline(
+            input_dim=input_dim,
+            d_model=args.hidden_dim,
+            num_layers=args.num_layers,
+        ).to(device)
+        model_name = "pose_transformer_baseline"
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(
         model.parameters(),
@@ -210,7 +228,7 @@ def main() -> None:
     )
 
     metrics = {
-        "model": "pose_gru_baseline",
+        "model": model_name,
         "windows_csv": args.windows_csv,
         "feature_col": args.feature_col,
         "checkpoint": str(checkpoint),

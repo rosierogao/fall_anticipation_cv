@@ -54,6 +54,15 @@ python scripts/train_baseline.py \
   --checkpoint outputs/baseline_simple_video_cnn.pt
 ```
 
+Model versions kept in the repo:
+
+- `SimpleVideoCNN`: current video CNN baseline with temporal mean pooling.
+- `VideoCNNTransformerBaseline`: same frame CNN encoder with Transformer
+  temporal modeling.
+- `PoseTransformerBaseline`: RTMPose features with Transformer temporal
+  modeling.
+- `PoseGRUBaseline`: older pose-sequence baseline kept for comparison.
+
 ## Train a Pose-Feature Baseline
 
 Use RTMPose from MMPose to extract pose features from the prepared video-window
@@ -94,8 +103,9 @@ For a small smoke test, limit the number of videos:
 PYTHONPATH=src python scripts/train_pose_baseline.py \
   --windows-csv data/pose_windows.csv \
   --feature-col pose_feature_path \
-  --checkpoint outputs/pose_gru_baseline.pt \
-  --metrics outputs/pose_gru_metrics.json
+  --model transformer \
+  --checkpoint outputs/pose_transformer_baseline.pt \
+  --metrics outputs/pose_transformer_metrics.json
 ```
 
 Feature arrays may be shaped as `[T, F]` or `[T, J, C]`; higher-dimensional
