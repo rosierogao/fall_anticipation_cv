@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Computer-vision baseline for fall anticipation from video windows."
 requires-python = ">=3.10"
 dependencies = [
+  "matplotlib",
   "numpy",
   "opencv-python",
   "pandas",
@@ -18,4 +19,3 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

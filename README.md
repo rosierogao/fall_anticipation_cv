@@ -35,6 +35,17 @@ python scripts/prepare_windows.py \
   --output data/windows_gmdcsa24.csv
 ```
 
+## Run EDA
+
+```bash
+PYTHONPATH=src python scripts/eda.py \
+  --data-root /path/to/final_project_dataset \
+  --output-dir outputs/eda
+```
+
+This writes `label_counts.csv`, `start_zero_stats.csv`, and
+`fall_start_time_distribution.png`.
+
 ## Train the baseline
 
 ```bash
