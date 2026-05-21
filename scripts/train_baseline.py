@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import argparse
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -8,17 +11,37 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from fall_anticipation_cv.data import FallWindowDataset, split_by_subject
-from fall_anticipation_cv.models.baseline import SimpleVideoCNN
-from fall_anticipation_cv.training import evaluate, train_one_epoch
+from fall_anticipation_cv.models.baseline import (
+    SimpleVideoCNN,
+    VideoCNNTransformerBaseline,
+)
+from fall_anticipation_cv.training_common import (
+    binary_classification_metrics,
+    compute_class_weights,
+    default_video_forward,
+    evaluate,
+    train_one_epoch,
+)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train the baseline SimpleVideoCNN.")
+    parser = argparse.ArgumentParser(description="Train a video fall-anticipation model.")
     parser.add_argument("--windows-csv", required=True, help="Window metadata CSV.")
     parser.add_argument(
         "--checkpoint",
         default="outputs/baseline_simple_video_cnn.pt",
         help="Path for the best validation checkpoint.",
+    )
+    parser.add_argument(
+        "--metrics",
+        default="outputs/baseline_metrics.json",
+        help="Path for the training metrics JSON.",
+    )
+    parser.add_argument(
+        "--model",
+        choices=["cnn", "transformer"],
+        default="cnn",
+        help="Temporal model to train on top of the frame encoder.",
     )
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=8)
@@ -46,7 +69,9 @@ def make_loader(
 def main() -> None:
     args = parse_args()
     checkpoint_path = Path(args.checkpoint)
+    metrics_path = Path(args.metrics)
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    metrics_path.parent.mkdir(parents=True, exist_ok=True)
 
     windows = pd.read_csv(args.windows_csv)
     train_df, val_df, test_df = split_by_subject(windows)
@@ -56,8 +81,17 @@ def main() -> None:
     test_loader = make_loader(test_df, args.batch_size, False, args.num_workers)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = SimpleVideoCNN(num_classes=2).to(device)
-    criterion = nn.CrossEntropyLoss()
+    if args.model == "transformer":
+        model = VideoCNNTransformerBaseline(num_classes=2).to(device)
+        model_name = "video_cnn_transformer_baseline"
+    else:
+        model = SimpleVideoCNN(num_classes=2).to(device)
+        model_name = "simple_video_cnn"
+
+    class_weights = compute_class_weights(
+        torch.tensor(train_df["y"].to_numpy(), dtype=torch.long)
+    ).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = optim.Adam(
         model.parameters(),
         lr=args.lr,
@@ -65,37 +99,74 @@ def main() -> None:
     )
 
     best_val_loss = float("inf")
+    best_val_acc = 0.0
+    best_epoch = -1
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch + 1}/{args.epochs}")
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, optimizer, criterion, device
+            model,
+            train_loader,
+            optimizer,
+            criterion,
+            device,
+            default_video_forward,
         )
-        val_result = evaluate(model, val_loader, criterion, device)
+        val_loss, val_acc, _, _ = evaluate(
+            model,
+            val_loader,
+            criterion,
+            device,
+            default_video_forward,
+        )
 
         print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc:.4f}")
-        print(f"Val loss:   {val_result.loss:.4f} | Val acc:   {val_result.accuracy:.4f}")
+        print(f"Val loss:   {val_loss:.4f} | Val acc:   {val_acc:.4f}")
 
-        if val_result.loss < best_val_loss:
-            best_val_loss = val_result.loss
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_val_acc = val_acc
+            best_epoch = epoch
             torch.save(
                 {
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "epoch": epoch,
-                    "val_loss": val_result.loss,
-                    "val_acc": val_result.accuracy,
+                    "val_loss": val_loss,
+                    "val_acc": val_acc,
+                    "class_weights": class_weights.detach().cpu().tolist(),
+                    "model_name": model_name,
                 },
                 checkpoint_path,
             )
             print(f"Saved best baseline checkpoint: {checkpoint_path}")
 
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    test_result = evaluate(model, test_loader, criterion, device)
-    print(f"Test loss: {test_result.loss:.4f}")
-    print(f"Test acc:  {test_result.accuracy:.4f}")
+    saved = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(saved["model_state_dict"])
+    test_loss, test_acc, predictions, labels = evaluate(
+        model,
+        test_loader,
+        criterion,
+        device,
+        default_video_forward,
+    )
+
+    metrics = {
+        "model": model_name,
+        "windows_csv": args.windows_csv,
+        "checkpoint": str(checkpoint_path),
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "best_epoch": best_epoch,
+        "val_loss": best_val_loss,
+        "val_acc": best_val_acc,
+        "test_loss": test_loss,
+        "test_acc": test_acc,
+        "class_weights": class_weights.detach().cpu().tolist(),
+        **binary_classification_metrics(labels, predictions),
+    }
+    metrics_path.write_text(json.dumps(metrics, indent=2) + "\n")
+    print(f"Saved metrics: {metrics_path}")
 
 
 if __name__ == "__main__":
     main()
-

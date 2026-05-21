@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 
 TARGET_FPS = 10
 OBS_SEC = 1.6
-HORIZON_SEC = 1.0
+HORIZON_SEC = 0.5
 STRIDE_SEC = 0.2
 
 OBS_LEN = int(OBS_SEC * TARGET_FPS)

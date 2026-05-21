@@ -96,6 +96,7 @@ def train_baseline(
     windows_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
     checkpoint_path: str = f"{DATASET_ROOT}/outputs/baseline_simple_video_cnn.pt",
     metrics_path: str = f"{DATASET_ROOT}/outputs/baseline_metrics.json",
+    video_model: str = "cnn",
     epochs: int = 1,
     batch_size: int = 8,
     num_workers: int = 2,
@@ -109,8 +110,17 @@ def train_baseline(
     from torch.utils.data import DataLoader
 
     from fall_anticipation_cv.data import FallWindowDataset, split_by_subject
-    from fall_anticipation_cv.models.baseline import SimpleVideoCNN
-    from fall_anticipation_cv.training import evaluate, train_one_epoch
+    from fall_anticipation_cv.models.baseline import (
+        SimpleVideoCNN,
+        VideoCNNTransformerBaseline,
+    )
+    from fall_anticipation_cv.training_common import (
+        binary_classification_metrics,
+        compute_class_weights,
+        default_video_forward,
+        evaluate,
+        train_one_epoch,
+    )
 
     checkpoint = Path(checkpoint_path)
     checkpoint.parent.mkdir(parents=True, exist_ok=True)
@@ -134,30 +144,52 @@ def train_baseline(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    model = SimpleVideoCNN(num_classes=2).to(device)
-    criterion = nn.CrossEntropyLoss()
+    if video_model == "transformer":
+        model = VideoCNNTransformerBaseline(num_classes=2).to(device)
+        model_name = "video_cnn_transformer_baseline"
+    else:
+        model = SimpleVideoCNN(num_classes=2).to(device)
+        model_name = "simple_video_cnn"
+
+    class_weights = compute_class_weights(
+        torch.tensor(train_df["y"].to_numpy(), dtype=torch.long)
+    ).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-4)
 
     best_val_loss = float("inf")
     for epoch in range(epochs):
         print(f"\nEpoch {epoch + 1}/{epochs}")
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, optimizer, criterion, device
+            model,
+            train_loader,
+            optimizer,
+            criterion,
+            device,
+            default_video_forward,
         )
-        val_result = evaluate(model, val_loader, criterion, device)
+        val_loss, val_acc, _, _ = evaluate(
+            model,
+            val_loader,
+            criterion,
+            device,
+            default_video_forward,
+        )
 
         print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc:.4f}")
-        print(f"Val loss:   {val_result.loss:.4f} | Val acc:   {val_result.accuracy:.4f}")
+        print(f"Val loss:   {val_loss:.4f} | Val acc:   {val_acc:.4f}")
 
-        if val_result.loss < best_val_loss:
-            best_val_loss = val_result.loss
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
             torch.save(
                 {
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "epoch": epoch,
-                    "val_loss": val_result.loss,
-                    "val_acc": val_result.accuracy,
+                    "val_loss": val_loss,
+                    "val_acc": val_acc,
+                    "class_weights": class_weights.detach().cpu().tolist(),
+                    "model_name": model_name,
                 },
                 checkpoint,
             )
@@ -166,34 +198,18 @@ def train_baseline(
 
     saved = torch.load(checkpoint, map_location=device)
     model.load_state_dict(saved["model_state_dict"])
-    test_result = evaluate(model, test_loader, criterion, device)
-    print(f"Test loss: {test_result.loss:.4f}")
-    print(f"Test acc:  {test_result.accuracy:.4f}")
-
-    labels = test_result.labels
-    predictions = test_result.predictions
-    true_negative = sum(1 for y, y_hat in zip(labels, predictions) if y == 0 and y_hat == 0)
-    false_positive = sum(1 for y, y_hat in zip(labels, predictions) if y == 0 and y_hat == 1)
-    false_negative = sum(1 for y, y_hat in zip(labels, predictions) if y == 1 and y_hat == 0)
-    true_positive = sum(1 for y, y_hat in zip(labels, predictions) if y == 1 and y_hat == 1)
-    positive_precision = (
-        true_positive / (true_positive + false_positive)
-        if true_positive + false_positive > 0
-        else 0.0
+    test_loss, test_acc, predictions, labels = evaluate(
+        model,
+        test_loader,
+        criterion,
+        device,
+        default_video_forward,
     )
-    positive_recall = (
-        true_positive / (true_positive + false_negative)
-        if true_positive + false_negative > 0
-        else 0.0
-    )
-    positive_f1 = (
-        2 * positive_precision * positive_recall / (positive_precision + positive_recall)
-        if positive_precision + positive_recall > 0
-        else 0.0
-    )
+    print(f"Test loss: {test_loss:.4f}")
+    print(f"Test acc:  {test_acc:.4f}")
 
     metrics = {
-        "model": "baseline_simple_video_cnn",
+        "model": model_name,
         "checkpoint_path": checkpoint_path,
         "windows_csv": windows_csv,
         "epochs": epochs,
@@ -201,21 +217,14 @@ def train_baseline(
         "best_epoch": int(saved.get("epoch", -1)),
         "val_loss": float(saved.get("val_loss", float("nan"))),
         "val_acc": float(saved.get("val_acc", float("nan"))),
-        "test_loss": float(test_result.loss),
-        "test_acc": float(test_result.accuracy),
-        "test_confusion_matrix": {
-            "true_negative": true_negative,
-            "false_positive": false_positive,
-            "false_negative": false_negative,
-            "true_positive": true_positive,
-        },
-        "test_positive_precision": positive_precision,
-        "test_positive_recall": positive_recall,
-        "test_positive_f1": positive_f1,
+        "test_loss": float(test_loss),
+        "test_acc": float(test_acc),
+        "class_weights": class_weights.detach().cpu().tolist(),
         "test_num_negative": sum(1 for y in labels if y == 0),
         "test_num_positive": sum(1 for y in labels if y == 1),
         "test_predicted_negative": sum(1 for y_hat in predictions if y_hat == 0),
         "test_predicted_positive": sum(1 for y_hat in predictions if y_hat == 1),
+        **binary_classification_metrics(labels, predictions),
     }
     metrics_output = Path(metrics_path)
     metrics_output.parent.mkdir(parents=True, exist_ok=True)
@@ -271,6 +280,7 @@ def main(
     extract_pose: bool = False,
     epochs: int = 1,
     batch_size: int = 8,
+    video_model: str = "cnn",
     max_pose_videos: int | None = None,
 ) -> None:
     windows_csv = f"{DATASET_ROOT}/windows_gmdcsa24.csv"
@@ -289,4 +299,5 @@ def main(
             windows_csv=windows_csv,
             epochs=epochs,
             batch_size=batch_size,
+            video_model=video_model,
         )

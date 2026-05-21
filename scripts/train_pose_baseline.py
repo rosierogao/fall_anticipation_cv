@@ -4,9 +4,28 @@ import argparse
 import json
 from pathlib import Path
 
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
+
+from fall_anticipation_cv.data import split_by_subject
+from fall_anticipation_cv.models.pose_baseline import (
+    PoseGRUBaseline,
+    PoseTransformerBaseline,
+)
+from fall_anticipation_cv.training_common import (
+    binary_classification_metrics,
+    compute_class_weights,
+    default_pose_forward,
+    evaluate,
+    train_one_epoch,
+)
+
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train a pose-feature GRU baseline.")
+    parser = argparse.ArgumentParser(description="Train a pose-feature baseline.")
     parser.add_argument("--windows-csv", required=True)
     parser.add_argument("--feature-col", default="pose_feature_path")
     parser.add_argument("--checkpoint", default="outputs/pose_gru_baseline.pt")
@@ -59,97 +78,8 @@ def make_loader(
     )
 
 
-def train_one_epoch(model, loader, optimizer, criterion, device):
-    from tqdm import tqdm
-
-    model.train()
-    total_loss = 0.0
-    correct = 0
-    total = 0
-
-    for features, labels, lengths in tqdm(loader, desc="Training"):
-        features = features.to(device)
-        labels = labels.to(device)
-        lengths = lengths.to(device)
-
-        optimizer.zero_grad()
-        logits = model(features, lengths)
-        loss = criterion(logits, labels)
-        loss.backward()
-        optimizer.step()
-
-        total_loss += loss.item() * labels.size(0)
-        predictions = torch.argmax(logits, dim=1)
-        correct += (predictions == labels).sum().item()
-        total += labels.size(0)
-
-    return total_loss / total, correct / total
-
-
-def evaluate(model, loader, criterion, device):
-    import torch
-    from tqdm import tqdm
-
-    model.eval()
-    total_loss = 0.0
-    correct = 0
-    total = 0
-    all_predictions = []
-    all_labels = []
-
-    with torch.no_grad():
-        for features, labels, lengths in tqdm(loader, desc="Evaluating"):
-            features = features.to(device)
-            labels = labels.to(device)
-            lengths = lengths.to(device)
-
-            logits = model(features, lengths)
-            loss = criterion(logits, labels)
-            predictions = torch.argmax(logits, dim=1)
-
-            total_loss += loss.item() * labels.size(0)
-            correct += (predictions == labels).sum().item()
-            total += labels.size(0)
-            all_predictions.extend(predictions.cpu().numpy().tolist())
-            all_labels.extend(labels.cpu().numpy().tolist())
-
-    return total_loss / total, correct / total, all_predictions, all_labels
-
-
-def positive_metrics(labels: list[int], predictions: list[int]) -> dict:
-    tn = sum(1 for y, y_hat in zip(labels, predictions) if y == 0 and y_hat == 0)
-    fp = sum(1 for y, y_hat in zip(labels, predictions) if y == 0 and y_hat == 1)
-    fn = sum(1 for y, y_hat in zip(labels, predictions) if y == 1 and y_hat == 0)
-    tp = sum(1 for y, y_hat in zip(labels, predictions) if y == 1 and y_hat == 1)
-    precision = tp / (tp + fp) if tp + fp > 0 else 0.0
-    recall = tp / (tp + fn) if tp + fn > 0 else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0.0
-    return {
-        "confusion_matrix": {
-            "true_negative": tn,
-            "false_positive": fp,
-            "false_negative": fn,
-            "true_positive": tp,
-        },
-        "positive_precision": precision,
-        "positive_recall": recall,
-        "positive_f1": f1,
-    }
-
-
 def main() -> None:
     args = parse_args()
-
-    import pandas as pd
-    import torch
-    import torch.nn as nn
-    import torch.optim as optim
-
-    from fall_anticipation_cv.data import split_by_subject
-    from fall_anticipation_cv.models.pose_baseline import (
-        PoseGRUBaseline,
-        PoseTransformerBaseline,
-    )
 
     checkpoint = Path(args.checkpoint)
     metrics_path = Path(args.metrics)
@@ -185,7 +115,10 @@ def main() -> None:
             num_layers=args.num_layers,
         ).to(device)
         model_name = "pose_transformer_baseline"
-    criterion = nn.CrossEntropyLoss()
+    class_weights = compute_class_weights(
+        torch.tensor(train_df["y"].to_numpy(), dtype=torch.long)
+    ).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = optim.Adam(
         model.parameters(),
         lr=args.lr,
@@ -198,9 +131,20 @@ def main() -> None:
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch + 1}/{args.epochs}")
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, optimizer, criterion, device
+            model,
+            train_loader,
+            optimizer,
+            criterion,
+            device,
+            default_pose_forward,
         )
-        val_loss, val_acc, _, _ = evaluate(model, val_loader, criterion, device)
+        val_loss, val_acc, _, _ = evaluate(
+            model,
+            val_loader,
+            criterion,
+            device,
+            default_pose_forward,
+        )
         print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc:.4f}")
         print(f"Val loss:   {val_loss:.4f} | Val acc:   {val_acc:.4f}")
 
@@ -216,6 +160,7 @@ def main() -> None:
                     "epoch": epoch,
                     "val_loss": val_loss,
                     "val_acc": val_acc,
+                    "class_weights": class_weights.detach().cpu().tolist(),
                 },
                 checkpoint,
             )
@@ -224,7 +169,11 @@ def main() -> None:
     saved = torch.load(checkpoint, map_location=device)
     model.load_state_dict(saved["model_state_dict"])
     test_loss, test_acc, predictions, labels = evaluate(
-        model, test_loader, criterion, device
+        model,
+        test_loader,
+        criterion,
+        device,
+        default_pose_forward,
     )
 
     metrics = {
@@ -240,7 +189,8 @@ def main() -> None:
         "val_acc": best_val_acc,
         "test_loss": test_loss,
         "test_acc": test_acc,
-        **positive_metrics(labels, predictions),
+        "class_weights": class_weights.detach().cpu().tolist(),
+        **binary_classification_metrics(labels, predictions),
     }
     metrics_path.write_text(json.dumps(metrics, indent=2) + "\n")
     print(f"Saved metrics: {metrics_path}")
