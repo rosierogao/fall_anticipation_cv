@@ -86,7 +86,7 @@ def train_video_cnn_transformer(
 @app.function(
     image=image,
     volumes={DATA_ROOT: volume},
-    gpu="L4",
+    gpu="H100",
     timeout=60 * 60 * 8,
 )
 def train_pose_transformer(
