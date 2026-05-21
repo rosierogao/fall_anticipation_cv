@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import glob
 import os
 from pathlib import Path
@@ -5,9 +7,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pandas as pd
-import torch
-from sklearn.model_selection import GroupShuffleSplit
-from torch.utils.data import Dataset
 
 
 TARGET_FPS = 10
@@ -32,6 +31,15 @@ NEGATIVE_LABELS = {
 }
 EXCLUDE_LABELS = {"fallen"}
 LE2I_FPS = 25.0
+VIDEO_EXTENSIONS = {
+    ".avi",
+    ".mp4",
+    ".mpeg",
+    ".mpg",
+    ".mov",
+    ".mkv",
+    ".wmv",
+}
 
 
 def dataset_root(data_root: str | Path) -> Path:
@@ -111,7 +119,11 @@ def resolve_le2i_video_path(annotation_path: str | Path) -> str | None:
     if not videos_dir.exists():
         return None
 
-    matches = sorted(videos_dir.glob(f"{annotation_path.stem}.*"))
+    matches = sorted(
+        path
+        for path in videos_dir.glob(f"{annotation_path.stem}.*")
+        if path.suffix.lower() in VIDEO_EXTENSIONS
+    )
     return str(matches[0]) if matches else None
 
 
@@ -200,7 +212,7 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
         return []
 
     original_fps, n_original_frames = video_info
-    sample_interval = max(1, int(round(original_fps / TARGET_FPS)))
+    sample_interval = max(1.0, original_fps / TARGET_FPS)
     n_sampled_frames = int(np.ceil(n_original_frames / sample_interval))
 
     if n_sampled_frames <= OBS_LEN + K_FRAMES:
@@ -212,7 +224,7 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
             action_start_original = int(row["start_frame"])
         else:
             action_start_original = int(float(row["start"]) * original_fps)
-        action_start_sampled = int(action_start_original / sample_interval)
+        action_start_sampled = int(round(action_start_original / sample_interval))
 
         if action_start_sampled <= OBS_LEN:
             return []
@@ -222,7 +234,7 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
                 action_start_original = int(row["start_frame"])
             else:
                 action_start_original = int(float(row["start"]) * original_fps)
-            action_start_sampled = int(action_start_original / sample_interval)
+            action_start_sampled = int(round(action_start_original / sample_interval))
             if action_start_sampled <= OBS_LEN:
                 return []
 
@@ -320,6 +332,8 @@ def split_by_subject(
     random_state: int = 42,
     val_random_state: int = 43,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    from sklearn.model_selection import GroupShuffleSplit
+
     group_column = "split_group" if "split_group" in windows.columns else "subject"
     groups = windows[group_column]
     gss = GroupShuffleSplit(
@@ -351,14 +365,14 @@ def load_video_window(
     video_path: str,
     window_start: int,
     window_end: int,
-    sample_interval: int,
+    sample_interval: float,
     resize: tuple[int, int] = (224, 224),
 ) -> list[np.ndarray]:
     cap = cv2.VideoCapture(video_path)
     frames = []
 
     for sampled_idx in range(window_start, window_end):
-        original_idx = int(sampled_idx * sample_interval)
+        original_idx = int(round(sampled_idx * sample_interval))
         cap.set(cv2.CAP_PROP_POS_FRAMES, original_idx)
         success, frame = cap.read()
 
@@ -373,7 +387,7 @@ def load_video_window(
     return frames
 
 
-class FallWindowDataset(Dataset):
+class FallWindowDataset:
     def __init__(self, windows_df: pd.DataFrame, resize: tuple[int, int] = (224, 224)):
         self.df = windows_df.reset_index(drop=True)
         self.resize = resize
@@ -382,12 +396,14 @@ class FallWindowDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        import torch
+
         row = self.df.iloc[idx]
         frames = load_video_window(
             video_path=row["video_path"],
             window_start=int(row["window_start"]),
             window_end=int(row["window_end"]),
-            sample_interval=int(row["sample_interval"]),
+            sample_interval=float(row["sample_interval"]),
             resize=self.resize,
         )
 
