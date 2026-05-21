@@ -5,6 +5,7 @@ import modal
 
 APP_NAME = "cs231n-final-project"
 DATA_ROOT = "/data"
+DATASET_ROOT = f"{DATA_ROOT}/final_project_dataset"
 VOLUME_NAME = "final_project_dataset"
 
 app = modal.App(APP_NAME)
@@ -30,7 +31,7 @@ image = (
     timeout=60 * 60 * 2,
 )
 def prepare_windows(
-    output_csv: str = f"{DATA_ROOT}/windows_gmdcsa24.csv",
+    output_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
 ) -> str:
     from fall_anticipation_cv.data import build_window_dataframe, load_gmd_labels
 
@@ -58,8 +59,8 @@ def prepare_windows(
     timeout=60 * 60 * 8,
 )
 def train_baseline(
-    windows_csv: str = f"{DATA_ROOT}/windows_gmdcsa24.csv",
-    checkpoint_path: str = f"{DATA_ROOT}/outputs/baseline_simple_video_cnn.pt",
+    windows_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
+    checkpoint_path: str = f"{DATASET_ROOT}/outputs/baseline_simple_video_cnn.pt",
     epochs: int = 1,
     batch_size: int = 8,
     num_workers: int = 2,
@@ -142,7 +143,7 @@ def main(
     epochs: int = 1,
     batch_size: int = 8,
 ) -> None:
-    windows_csv = f"{DATA_ROOT}/windows_gmdcsa24.csv"
+    windows_csv = f"{DATASET_ROOT}/windows_gmdcsa24.csv"
 
     if prepare:
         prepare_windows.remote(windows_csv)
@@ -153,4 +154,3 @@ def main(
             epochs=epochs,
             batch_size=batch_size,
         )
-

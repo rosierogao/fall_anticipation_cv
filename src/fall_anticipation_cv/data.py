@@ -33,8 +33,18 @@ NEGATIVE_LABELS = {
 EXCLUDE_LABELS = {"fallen"}
 
 
+def dataset_root(data_root: str | Path) -> Path:
+    root = Path(data_root)
+    nested_root = root / "final_project_dataset"
+
+    if nested_root.exists():
+        return nested_root
+
+    return root
+
+
 def resolve_gmd_video_path(label_path: str, data_root: str | Path) -> str | None:
-    gmd_root = Path(data_root) / "GMDCSA24"
+    gmd_root = dataset_root(data_root) / "GMDCSA24"
     rel_path = str(label_path).replace("Subject_", "Subject ")
     candidate = gmd_root / f"{rel_path}.mp4"
 
@@ -46,15 +56,30 @@ def resolve_gmd_video_path(label_path: str, data_root: str | Path) -> str | None
 
 
 def load_gmd_labels(data_root: str | Path) -> pd.DataFrame:
-    data_root = Path(data_root)
-    labels = pd.read_csv(data_root / "labels" / "GMDCSA24.csv")
-    label_map = pd.read_csv(data_root / "labels" / "label2id.csv")
+    data_root = dataset_root(data_root)
+    labels_dir = data_root / "labels"
+    matched_csv = labels_dir / "GMDCSA24_matched.csv"
+    raw_csv = labels_dir / "GMDCSA24.csv"
+
+    labels = pd.read_csv(matched_csv if matched_csv.exists() else raw_csv)
+    label_map = pd.read_csv(labels_dir / "label2id.csv")
     id_to_label = dict(zip(label_map["id"], label_map["label"]))
 
     labels["label_name"] = labels["label"].map(id_to_label)
-    labels["video_path"] = labels["path"].apply(
+
+    resolved_video_paths = labels["path"].apply(
         lambda path: resolve_gmd_video_path(path, data_root)
     )
+    if "video_path" not in labels.columns:
+        labels["video_path"] = resolved_video_paths
+    else:
+        labels["video_path"] = labels["video_path"].where(
+            labels["video_path"].apply(
+                lambda path: isinstance(path, str) and os.path.exists(path)
+            ),
+            resolved_video_paths,
+        )
+
     labels["video_exists"] = labels["video_path"].apply(
         lambda path: path is not None and os.path.exists(path)
     )
@@ -237,4 +262,3 @@ class FallWindowDataset(Dataset):
         label = torch.tensor(row["y"], dtype=torch.long)
 
         return video, label
-

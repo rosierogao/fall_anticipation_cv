@@ -46,11 +46,14 @@ python scripts/train_baseline.py \
 ## Run on Modal
 
 The Modal remote runner uses your Modal volume named `final_project_dataset` and
-mounts it at `/data`.
+mounts it at `/data`. The dataset files are expected under
+`/data/final_project_dataset`.
 
 ```python
 volume = modal.Volume.from_name("final_project_dataset", create_if_missing=False)
 DATA_ROOT = "/data"
+label_csv_path = "/data/final_project_dataset/labels/GMDCSA24_matched.csv"
+label_map_path = "/data/final_project_dataset/labels/label2id.csv"
 ```
 
 If `modal` is installed in your Anaconda Python, run:
@@ -66,7 +69,7 @@ After the window CSV exists on the volume, you can skip preparation:
 ```
 
 The baseline checkpoint is written back to the Modal volume at
-`/data/outputs/baseline_simple_video_cnn.pt`.
+`/data/final_project_dataset/outputs/baseline_simple_video_cnn.pt`.
 
 Large datasets, generated window CSVs, checkpoints, and run outputs are ignored
 by Git by default.
