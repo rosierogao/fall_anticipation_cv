@@ -7,6 +7,8 @@ APP_NAME = "cs231n-final-project"
 DATA_ROOT = "/data"
 DATASET_ROOT = f"{DATA_ROOT}/final_project_dataset"
 VOLUME_NAME = "final_project_dataset"
+PACKAGE_REMOTE_ROOT = "/root/project"
+LOCAL_PACKAGE_DIR = Path(__file__).parent / "src" / "fall_anticipation_cv"
 
 app = modal.App(APP_NAME)
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=False)
@@ -22,7 +24,12 @@ image = (
         "torch",
         "tqdm",
     )
-    .add_local_python_source("fall_anticipation_cv")
+    .add_local_dir(
+        LOCAL_PACKAGE_DIR,
+        f"{PACKAGE_REMOTE_ROOT}/fall_anticipation_cv",
+        copy=True,
+    )
+    .env({"PYTHONPATH": PACKAGE_REMOTE_ROOT})
 )
 
 
