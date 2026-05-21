@@ -43,5 +43,30 @@ python scripts/train_baseline.py \
   --checkpoint outputs/baseline_simple_video_cnn.pt
 ```
 
+## Run on Modal
+
+The Modal remote runner uses your Modal volume named `final_project_dataset` and
+mounts it at `/data`.
+
+```python
+volume = modal.Volume.from_name("final_project_dataset", create_if_missing=False)
+DATA_ROOT = "/data"
+```
+
+If `modal` is installed in your Anaconda Python, run:
+
+```bash
+/opt/anaconda3/bin/python -m modal run modal_app.py --prepare --epochs 1
+```
+
+After the window CSV exists on the volume, you can skip preparation:
+
+```bash
+/opt/anaconda3/bin/python -m modal run modal_app.py --epochs 1
+```
+
+The baseline checkpoint is written back to the Modal volume at
+`/data/outputs/baseline_simple_video_cnn.pt`.
+
 Large datasets, generated window CSVs, checkpoints, and run outputs are ignored
 by Git by default.
