@@ -31,6 +31,7 @@ NEGATIVE_LABELS = {
     "other",
 }
 EXCLUDE_LABELS = {"fallen"}
+LE2I_FPS = 25.0
 
 
 def dataset_root(data_root: str | Path) -> Path:
@@ -83,7 +84,90 @@ def load_gmd_labels(data_root: str | Path) -> pd.DataFrame:
     labels["video_exists"] = labels["video_path"].apply(
         lambda path: path is not None and os.path.exists(path)
     )
+    labels["split_group"] = labels["subject"].apply(
+        lambda subject: f"GMDCSA24:{subject}"
+    )
     return labels
+
+
+def parse_le2i_annotation(annotation_path: str | Path) -> tuple[int, int] | None:
+    lines = [
+        line.strip()
+        for line in Path(annotation_path).read_text().splitlines()
+        if line.strip()
+    ]
+    if len(lines) < 2:
+        return None
+
+    try:
+        return int(float(lines[0])), int(float(lines[1]))
+    except ValueError:
+        return None
+
+
+def resolve_le2i_video_path(annotation_path: str | Path) -> str | None:
+    annotation_path = Path(annotation_path)
+    videos_dir = annotation_path.parent.parent / "Videos"
+    if not videos_dir.exists():
+        return None
+
+    matches = sorted(videos_dir.glob(f"{annotation_path.stem}.*"))
+    return str(matches[0]) if matches else None
+
+
+def load_le2i_labels(data_root: str | Path) -> pd.DataFrame:
+    le2i_root = dataset_root(data_root) / "le2i"
+    if not le2i_root.exists():
+        return pd.DataFrame()
+
+    records = []
+    annotation_paths = sorted(le2i_root.glob("**/Annotation_files/*.txt"))
+    for annotation_path in annotation_paths:
+        fall_bounds = parse_le2i_annotation(annotation_path)
+        if fall_bounds is None:
+            continue
+
+        fall_start_frame, fall_end_frame = fall_bounds
+        video_path = resolve_le2i_video_path(annotation_path)
+        subset = annotation_path.parent.parent.name
+        video_stem = annotation_path.stem
+
+        records.append(
+            {
+                "path": f"{subset}/{video_stem}",
+                "label": 1,
+                "label_name": POSITIVE_LABEL,
+                "start": fall_start_frame / LE2I_FPS,
+                "end": fall_end_frame / LE2I_FPS,
+                "start_frame": fall_start_frame,
+                "end_frame": fall_end_frame,
+                "subject": f"le2i:{subset}:{video_stem}",
+                "cam": 1,
+                "dataset": "le2i",
+                "video_path": video_path,
+                "annotation_path": str(annotation_path),
+                "split_group": f"le2i:{subset}:{video_stem}",
+            }
+        )
+
+    labels = pd.DataFrame(records)
+    if labels.empty:
+        return labels
+
+    labels["video_exists"] = labels["video_path"].apply(
+        lambda path: path is not None and os.path.exists(path)
+    )
+    return labels
+
+
+def load_all_labels(data_root: str | Path, include_le2i: bool = True) -> pd.DataFrame:
+    label_frames = [load_gmd_labels(data_root)]
+    if include_le2i:
+        le2i_labels = load_le2i_labels(data_root)
+        if not le2i_labels.empty:
+            label_frames.append(le2i_labels)
+
+    return pd.concat(label_frames, ignore_index=True, sort=False)
 
 
 def get_video_info(video_path: str) -> tuple[float, int] | None:
@@ -124,14 +208,20 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
 
     action_start_sampled = None
     if label_name == POSITIVE_LABEL:
-        fall_start_original = int(float(row["start"]) * original_fps)
-        action_start_sampled = int(fall_start_original / sample_interval)
+        if "start_frame" in row and not pd.isna(row["start_frame"]):
+            action_start_original = int(row["start_frame"])
+        else:
+            action_start_original = int(float(row["start"]) * original_fps)
+        action_start_sampled = int(action_start_original / sample_interval)
 
         if action_start_sampled <= OBS_LEN:
             return []
     else:
         if "start" in row and not pd.isna(row["start"]):
-            action_start_original = int(float(row["start"]) * original_fps)
+            if "start_frame" in row and not pd.isna(row["start_frame"]):
+                action_start_original = int(row["start_frame"])
+            else:
+                action_start_original = int(float(row["start"]) * original_fps)
             action_start_sampled = int(action_start_original / sample_interval)
             if action_start_sampled <= OBS_LEN:
                 return []
@@ -143,7 +233,10 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
             if target_frame >= action_start_sampled:
                 continue
         else:
-            if action_start_sampled is not None and target_frame + K_FRAMES > action_start_sampled:
+            if (
+                action_start_sampled is not None
+                and target_frame + K_FRAMES > action_start_sampled
+            ):
                 continue
             y = 0
 
@@ -154,6 +247,7 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
                 "subject": row["subject"],
                 "cam": row["cam"],
                 "dataset": row.get("dataset", None),
+                "split_group": row.get("split_group", row["subject"]),
                 "window_start": target_frame - OBS_LEN,
                 "window_end": target_frame,
                 "target_frame": target_frame,
@@ -182,6 +276,7 @@ def build_window_dataframe(labels: pd.DataFrame) -> pd.DataFrame:
         "subject",
         "cam",
         "dataset",
+        "split_group",
         "window_start",
         "window_end",
         "target_frame",
@@ -225,7 +320,8 @@ def split_by_subject(
     random_state: int = 42,
     val_random_state: int = 43,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    groups = windows["subject"]
+    group_column = "split_group" if "split_group" in windows.columns else "subject"
+    groups = windows[group_column]
     gss = GroupShuffleSplit(
         n_splits=1,
         test_size=test_size,
@@ -242,7 +338,7 @@ def split_by_subject(
         random_state=val_random_state,
     )
     train_idx, val_idx = next(
-        gss_val.split(train_val, train_val["y"], train_val["subject"])
+        gss_val.split(train_val, train_val["y"], train_val[group_column])
     )
 
     train = train_val.iloc[train_idx].reset_index(drop=True)

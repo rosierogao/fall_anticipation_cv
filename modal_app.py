@@ -64,11 +64,11 @@ def prepare_windows(
 ) -> str:
     from fall_anticipation_cv.data import (
         build_window_dataframe,
-        load_gmd_labels,
+        load_all_labels,
         validate_windows,
     )
 
-    labels = load_gmd_labels(DATA_ROOT)
+    labels = load_all_labels(DATA_ROOT)
     windows = build_window_dataframe(labels)
     validate_windows(windows)
 
@@ -79,6 +79,7 @@ def prepare_windows(
 
     print(f"Labels: {len(labels)}")
     print(f"Matched videos: {labels['video_exists'].sum()}/{len(labels)}")
+    print(labels["dataset"].value_counts())
     print(f"Windows: {windows.shape}")
     print(windows["y"].value_counts())
     print(f"Saved: {output_csv}")
