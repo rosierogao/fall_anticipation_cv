@@ -5,6 +5,7 @@ __pycache__/
 
 .venv/
 venv/
+.tmp_modal/
 
 data/
 outputs/
@@ -12,4 +13,3 @@ runs/
 checkpoints/
 *.pt
 *.pth
-

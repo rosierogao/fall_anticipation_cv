@@ -11,7 +11,7 @@ import pandas as pd
 
 TARGET_FPS = 10
 OBS_SEC = 1.6
-HORIZON_SEC = 0.5
+HORIZON_SEC = 1.0
 STRIDE_SEC = 0.2
 
 OBS_LEN = int(OBS_SEC * TARGET_FPS)
@@ -30,7 +30,7 @@ NEGATIVE_LABELS = {
     "other",
 }
 EXCLUDE_LABELS = {"fallen"}
-LE2I_FPS = 25.0
+DEFAULT_LE2I_FPS = 25.0
 VIDEO_EXTENSIONS = {
     ".avi",
     ".mp4",
@@ -141,6 +141,8 @@ def load_le2i_labels(data_root: str | Path) -> pd.DataFrame:
 
         fall_start_frame, fall_end_frame = fall_bounds
         video_path = resolve_le2i_video_path(annotation_path)
+        video_info = get_video_info(video_path) if video_path else None
+        fps = video_info[0] if video_info is not None else DEFAULT_LE2I_FPS
         subset = annotation_path.parent.parent.name
         video_stem = annotation_path.stem
 
@@ -149,10 +151,11 @@ def load_le2i_labels(data_root: str | Path) -> pd.DataFrame:
                 "path": f"{subset}/{video_stem}",
                 "label": 1,
                 "label_name": POSITIVE_LABEL,
-                "start": fall_start_frame / LE2I_FPS,
-                "end": fall_end_frame / LE2I_FPS,
+                "start": fall_start_frame / fps,
+                "end": fall_end_frame / fps,
                 "start_frame": fall_start_frame,
                 "end_frame": fall_end_frame,
+                "original_fps": fps,
                 "subject": f"le2i:{subset}:{video_stem}",
                 "cam": 1,
                 "dataset": "le2i",
