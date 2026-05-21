@@ -1,7 +1,11 @@
 import argparse
 from pathlib import Path
 
-from fall_anticipation_cv.data import build_window_dataframe, load_gmd_labels
+from fall_anticipation_cv.data import (
+    build_window_dataframe,
+    load_gmd_labels,
+    validate_windows,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -18,6 +22,7 @@ def main() -> None:
 
     labels = load_gmd_labels(args.data_root)
     windows = build_window_dataframe(labels)
+    validate_windows(windows)
     windows.to_csv(output, index=False)
 
     print(f"Labels: {len(labels)}")
@@ -29,4 +34,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

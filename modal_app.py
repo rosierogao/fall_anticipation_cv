@@ -34,10 +34,15 @@ image = (
 def prepare_windows(
     output_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
 ) -> str:
-    from fall_anticipation_cv.data import build_window_dataframe, load_gmd_labels
+    from fall_anticipation_cv.data import (
+        build_window_dataframe,
+        load_gmd_labels,
+        validate_windows,
+    )
 
     labels = load_gmd_labels(DATA_ROOT)
     windows = build_window_dataframe(labels)
+    validate_windows(windows)
 
     output_path = Path(output_csv)
     output_path.parent.mkdir(parents=True, exist_ok=True)

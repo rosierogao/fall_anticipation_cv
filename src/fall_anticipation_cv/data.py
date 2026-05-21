@@ -167,7 +167,47 @@ def build_window_dataframe(labels: pd.DataFrame) -> pd.DataFrame:
     all_samples = []
     for _, row in labels.iterrows():
         all_samples.extend(build_windows_for_row(row))
-    return pd.DataFrame(all_samples)
+
+    columns = [
+        "video_path",
+        "label_name",
+        "subject",
+        "cam",
+        "dataset",
+        "window_start",
+        "window_end",
+        "target_frame",
+        "obs_len",
+        "k_frames",
+        "target_fps",
+        "sample_interval",
+        "y",
+        "fall_start_frame",
+    ]
+    return pd.DataFrame(all_samples, columns=columns)
+
+
+def validate_windows(windows: pd.DataFrame) -> None:
+    if windows.empty:
+        raise ValueError(
+            "No training windows were created. Check that video paths exist under "
+            "the dataset root, labels include supported label names, and fall clips "
+            "start after the observation window."
+        )
+
+    required_columns = {
+        "video_path",
+        "window_start",
+        "window_end",
+        "obs_len",
+        "sample_interval",
+        "y",
+        "subject",
+    }
+    missing_columns = required_columns.difference(windows.columns)
+    if missing_columns:
+        missing = ", ".join(sorted(missing_columns))
+        raise ValueError(f"Window metadata is missing required columns: {missing}")
 
 
 def split_by_subject(
