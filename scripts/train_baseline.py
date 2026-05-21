@@ -74,6 +74,9 @@ def make_loader(
 def main() -> None:
     args = parse_args()
     checkpoint_path = Path(args.checkpoint)
+    last_checkpoint_path = checkpoint_path.with_name(
+        f"{checkpoint_path.stem}_last{checkpoint_path.suffix}"
+    )
     metrics_path = Path(args.metrics)
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
@@ -107,8 +110,14 @@ def main() -> None:
     best_val_acc = 0.0
     best_epoch = -1
     start_epoch = 0
-    if args.resume and checkpoint_path.exists():
-        saved = torch.load(checkpoint_path, map_location=device)
+    resume_path = None
+    if args.resume and last_checkpoint_path.exists():
+        resume_path = last_checkpoint_path
+    elif args.resume and checkpoint_path.exists():
+        resume_path = checkpoint_path
+
+    if resume_path is not None:
+        saved = torch.load(resume_path, map_location=device)
         checkpoint_model_name = saved.get("model_name")
         if checkpoint_model_name and checkpoint_model_name != model_name:
             raise ValueError(
@@ -121,9 +130,9 @@ def main() -> None:
         best_val_loss = float(saved.get("val_loss", best_val_loss))
         best_val_acc = float(saved.get("val_acc", best_val_acc))
         best_epoch = int(saved.get("epoch", best_epoch))
-        start_epoch = best_epoch + 1
+        start_epoch = int(saved.get("last_epoch", best_epoch)) + 1
         print(
-            f"Resuming from {checkpoint_path} at epoch "
+            f"Resuming from {resume_path} at epoch "
             f"{start_epoch + 1}/{args.epochs}."
         )
 
@@ -165,6 +174,21 @@ def main() -> None:
                 checkpoint_path,
             )
             print(f"Saved best baseline checkpoint: {checkpoint_path}")
+
+        torch.save(
+            {
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "epoch": best_epoch,
+                "last_epoch": epoch,
+                "val_loss": best_val_loss,
+                "val_acc": best_val_acc,
+                "class_weights": class_weights.detach().cpu().tolist(),
+                "model_name": model_name,
+            },
+            last_checkpoint_path,
+        )
+        print(f"Saved last baseline checkpoint: {last_checkpoint_path}")
 
     saved = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(saved["model_state_dict"])

@@ -44,7 +44,7 @@ def _run_script(cmd: list[str]) -> None:
 @app.function(
     image=image,
     volumes={DATA_ROOT: volume},
-    gpu="L4",
+    gpu="A100",
     timeout=60 * 60 * 8,
 )
 def train_video_cnn_transformer(
