@@ -302,7 +302,18 @@ def build_window_dataframe(labels: pd.DataFrame) -> pd.DataFrame:
         "y",
         "fall_start_frame",
     ]
-    return pd.DataFrame(all_samples, columns=columns)
+    windows = pd.DataFrame(all_samples, columns=columns)
+    dedupe_columns = [
+        "video_path",
+        "window_start",
+        "window_end",
+        "target_frame",
+        "y",
+        "dataset",
+    ]
+    return windows.drop_duplicates(subset=dedupe_columns, keep="first").reset_index(
+        drop=True
+    )
 
 
 def validate_windows(windows: pd.DataFrame) -> None:
