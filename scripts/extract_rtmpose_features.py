@@ -18,6 +18,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-videos", type=int, default=None)
     parser.add_argument("--video-start", type=int, default=0)
     parser.add_argument("--video-count", type=int, default=None)
+    parser.add_argument(
+        "--decode-backend",
+        choices=["ffmpeg", "opencv"],
+        default="ffmpeg",
+        help="Video frame decoder. ffmpeg is safer for fragile AVI containers.",
+    )
     return parser.parse_args()
 
 
@@ -73,30 +79,75 @@ def frame_to_pose(result: dict, num_keypoints: int | None) -> tuple[object, int]
     return np.concatenate([keypoints, scores[:, None]], axis=1), num_keypoints
 
 
-def extract_video_pose(inferencer, video_path: str) -> object:
-    import cv2
+def extract_pose_from_frames(inferencer, frames) -> object:
     import numpy as np
 
-    frames = []
+    poses = []
     num_keypoints = None
-
-    capture = cv2.VideoCapture(video_path)
-    while True:
-        ok, frame = capture.read()
-        if not ok:
-            break
-
+    for frame in frames:
         result_iter = inferencer(frame, show=False, return_vis=False)
         result = next(result_iter)
         pose, num_keypoints = frame_to_pose(result, num_keypoints)
-        frames.append(pose)
-    capture.release()
+        poses.append(pose)
 
-    if len(frames) == 0:
+    if len(poses) == 0:
         num_keypoints = num_keypoints or 17
         return np.zeros((0, num_keypoints, 3), dtype=np.float32)
 
-    return np.stack(frames, axis=0).astype(np.float32)
+    return np.stack(poses, axis=0).astype(np.float32)
+
+
+def ffmpeg_frames(video_path: str):
+    import subprocess
+    import tempfile
+
+    import cv2
+
+    with tempfile.TemporaryDirectory(prefix="rtmpose_frames_") as tmpdir:
+        frame_pattern = str(Path(tmpdir) / "frame_%08d.jpg")
+        cmd = [
+            "ffmpeg",
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            video_path,
+            "-an",
+            "-q:v",
+            "2",
+            frame_pattern,
+        ]
+        subprocess.run(cmd, check=True)
+
+        frame_paths = sorted(Path(tmpdir).glob("frame_*.jpg"))
+        for frame_path in frame_paths:
+            frame = cv2.imread(str(frame_path))
+            if frame is not None:
+                yield frame
+
+
+def opencv_frames(video_path: str):
+    import cv2
+
+    capture = cv2.VideoCapture(video_path)
+    try:
+        while True:
+            ok, frame = capture.read()
+            if not ok:
+                break
+            yield frame
+    finally:
+        capture.release()
+
+
+def extract_video_pose(inferencer, video_path: str, decode_backend: str) -> object:
+    if decode_backend == "ffmpeg":
+        video_pose = extract_pose_from_frames(inferencer, ffmpeg_frames(video_path))
+    else:
+        video_pose = extract_pose_from_frames(inferencer, opencv_frames(video_path))
+
+    return video_pose
 
 
 def build_window_feature(video_pose, row):
@@ -153,7 +204,11 @@ def main() -> None:
                 f"[{video_idx}/{len(unique_videos)}] Extracting RTMPose: {video_path}",
                 flush=True,
             )
-            video_pose = extract_video_pose(inferencer, video_path)
+            video_pose = extract_video_pose(
+                inferencer,
+                video_path,
+                args.decode_backend,
+            )
             np.save(pose_path, video_pose)
         video_to_pose_path[video_path] = pose_path
 

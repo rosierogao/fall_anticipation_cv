@@ -78,6 +78,7 @@ def main() -> None:
         f"{checkpoint_path.stem}_last{checkpoint_path.suffix}"
     )
     metrics_path = Path(args.metrics)
+    history_path = metrics_path.with_name(f"{metrics_path.stem}_history.json")
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -109,6 +110,7 @@ def main() -> None:
     best_val_loss = float("inf")
     best_val_acc = 0.0
     best_epoch = -1
+    epoch_history = []
     start_epoch = 0
     resume_path = None
     if args.resume and last_checkpoint_path.exists():
@@ -156,6 +158,19 @@ def main() -> None:
 
         print(f"Train loss: {train_loss:.4f} | Train acc: {train_acc:.4f}")
         print(f"Val loss:   {val_loss:.4f} | Val acc:   {val_acc:.4f}")
+
+        epoch_history.append(
+            {
+                "epoch": epoch,
+                "epoch_1_indexed": epoch + 1,
+                "train_loss": train_loss,
+                "train_acc": train_acc,
+                "val_loss": val_loss,
+                "val_acc": val_acc,
+            }
+        )
+        history_path.write_text(json.dumps(epoch_history, indent=2) + "\n")
+        print(f"Saved epoch history: {history_path}")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
