@@ -81,6 +81,8 @@ After the window CSV exists on the volume, you can skip preparation:
 
 The baseline checkpoint is written back to the Modal volume at
 `/data/final_project_dataset/outputs/baseline_simple_video_cnn.pt`.
+Metrics are written to
+`/data/final_project_dataset/outputs/baseline_metrics.json`.
 
 Large datasets, generated window CSVs, checkpoints, and run outputs are ignored
 by Git by default.

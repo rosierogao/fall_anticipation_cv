@@ -1,0 +1,30 @@
+{
+  "model": "baseline_simple_video_cnn",
+  "run_url": "https://modal.com/apps/cs231n-final-project/main/ap-RvKCjOXhZrd5hvSR6Ng8sn",
+  "checkpoint_path": "/data/final_project_dataset/outputs/baseline_simple_video_cnn.pt",
+  "windows_csv": "/data/final_project_dataset/windows_gmdcsa24.csv",
+  "epochs": 1,
+  "batch_size": 8,
+  "val_loss": 0.0799,
+  "val_acc": 0.9845,
+  "test_loss": 0.1042,
+  "test_acc": 0.9785,
+  "split_class_balance": {
+    "train": {
+      "negative": 3075,
+      "positive": 19,
+      "majority_class_accuracy": 0.9939
+    },
+    "val": {
+      "negative": 2597,
+      "positive": 41,
+      "majority_class_accuracy": 0.9845
+    },
+    "test": {
+      "negative": 3874,
+      "positive": 85,
+      "majority_class_accuracy": 0.9785
+    }
+  },
+  "note": "Validation and test accuracy match the majority-class baseline after rounding, so accuracy alone is not a reliable measure for this imbalanced setup."
+}

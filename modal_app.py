@@ -74,10 +74,13 @@ def prepare_windows(
 def train_baseline(
     windows_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
     checkpoint_path: str = f"{DATASET_ROOT}/outputs/baseline_simple_video_cnn.pt",
+    metrics_path: str = f"{DATASET_ROOT}/outputs/baseline_metrics.json",
     epochs: int = 1,
     batch_size: int = 8,
     num_workers: int = 2,
 ) -> str:
+    import json
+
     import pandas as pd
     import torch
     import torch.nn as nn
@@ -145,6 +148,59 @@ def train_baseline(
     test_result = evaluate(model, test_loader, criterion, device)
     print(f"Test loss: {test_result.loss:.4f}")
     print(f"Test acc:  {test_result.accuracy:.4f}")
+
+    labels = test_result.labels
+    predictions = test_result.predictions
+    true_negative = sum(1 for y, y_hat in zip(labels, predictions) if y == 0 and y_hat == 0)
+    false_positive = sum(1 for y, y_hat in zip(labels, predictions) if y == 0 and y_hat == 1)
+    false_negative = sum(1 for y, y_hat in zip(labels, predictions) if y == 1 and y_hat == 0)
+    true_positive = sum(1 for y, y_hat in zip(labels, predictions) if y == 1 and y_hat == 1)
+    positive_precision = (
+        true_positive / (true_positive + false_positive)
+        if true_positive + false_positive > 0
+        else 0.0
+    )
+    positive_recall = (
+        true_positive / (true_positive + false_negative)
+        if true_positive + false_negative > 0
+        else 0.0
+    )
+    positive_f1 = (
+        2 * positive_precision * positive_recall / (positive_precision + positive_recall)
+        if positive_precision + positive_recall > 0
+        else 0.0
+    )
+
+    metrics = {
+        "model": "baseline_simple_video_cnn",
+        "checkpoint_path": checkpoint_path,
+        "windows_csv": windows_csv,
+        "epochs": epochs,
+        "batch_size": batch_size,
+        "best_epoch": int(saved.get("epoch", -1)),
+        "val_loss": float(saved.get("val_loss", float("nan"))),
+        "val_acc": float(saved.get("val_acc", float("nan"))),
+        "test_loss": float(test_result.loss),
+        "test_acc": float(test_result.accuracy),
+        "test_confusion_matrix": {
+            "true_negative": true_negative,
+            "false_positive": false_positive,
+            "false_negative": false_negative,
+            "true_positive": true_positive,
+        },
+        "test_positive_precision": positive_precision,
+        "test_positive_recall": positive_recall,
+        "test_positive_f1": positive_f1,
+        "test_num_negative": sum(1 for y in labels if y == 0),
+        "test_num_positive": sum(1 for y in labels if y == 1),
+        "test_predicted_negative": sum(1 for y_hat in predictions if y_hat == 0),
+        "test_predicted_positive": sum(1 for y_hat in predictions if y_hat == 1),
+    }
+    metrics_output = Path(metrics_path)
+    metrics_output.parent.mkdir(parents=True, exist_ok=True)
+    metrics_output.write_text(json.dumps(metrics, indent=2) + "\n")
+    volume.commit()
+    print(f"Saved metrics: {metrics_path}")
 
     return checkpoint_path
 
