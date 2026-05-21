@@ -137,24 +137,27 @@ def main(
     max_windows: int | None = None,
 ) -> None:
     if action == "extract":
-        extract_vjepa_latents.remote(
+        call = extract_vjepa_latents.spawn(
             batch_size=batch_size,
             max_windows=max_windows,
         )
+        print(f"Spawned V-JEPA latent extraction: {call.object_id}", flush=True)
     elif action == "train":
-        train_vjepa_predictive.remote(
+        call = train_vjepa_predictive.spawn(
             epochs=epochs,
             batch_size=batch_size,
         )
+        print(f"Spawned V-JEPA predictive training: {call.object_id}", flush=True)
     elif action == "all":
         output_csv = extract_vjepa_latents.remote(
             batch_size=batch_size,
             max_windows=max_windows,
         )
-        train_vjepa_predictive.remote(
+        call = train_vjepa_predictive.spawn(
             windows_csv=output_csv,
             epochs=epochs,
             batch_size=32,
         )
+        print(f"Spawned V-JEPA predictive training: {call.object_id}", flush=True)
     else:
         raise ValueError("action must be 'extract', 'train', or 'all'")

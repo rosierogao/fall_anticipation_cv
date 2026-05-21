@@ -53,29 +53,32 @@ def train_video_cnn_transformer(
     windows_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
     checkpoint: str = f"{DATASET_ROOT}/outputs/video_cnn_transformer_baseline.pt",
     metrics: str = f"{DATASET_ROOT}/outputs/video_cnn_transformer_metrics.json",
+    resume: bool = True,
 ) -> str:
     import sys
 
-    _run_script(
-        [
-            sys.executable,
-            f"{PACKAGE_REMOTE_ROOT}/scripts/train_baseline.py",
-            "--windows-csv",
-            windows_csv,
-            "--checkpoint",
-            checkpoint,
-            "--metrics",
-            metrics,
-            "--model",
-            "transformer",
-            "--epochs",
-            str(epochs),
-            "--batch-size",
-            str(batch_size),
-            "--num-workers",
-            "0",
-        ]
-    )
+    cmd = [
+        sys.executable,
+        f"{PACKAGE_REMOTE_ROOT}/scripts/train_baseline.py",
+        "--windows-csv",
+        windows_csv,
+        "--checkpoint",
+        checkpoint,
+        "--metrics",
+        metrics,
+        "--model",
+        "transformer",
+        "--epochs",
+        str(epochs),
+        "--batch-size",
+        str(batch_size),
+        "--num-workers",
+        "0",
+    ]
+    if resume:
+        cmd.append("--resume")
+
+    _run_script(cmd)
     volume.commit()
     return metrics
 
@@ -170,6 +173,7 @@ def main(
     action: str = "train",
     epochs: int = 5,
     batch_size: int | None = None,
+    resume: bool = True,
 ) -> None:
     if action == "eval":
         if model != "video":
@@ -181,14 +185,17 @@ def main(
         raise ValueError("action must be 'train' or 'eval'")
 
     if model == "video":
-        train_video_cnn_transformer.remote(
+        call = train_video_cnn_transformer.spawn(
             epochs=epochs,
             batch_size=batch_size or 16,
+            resume=resume,
         )
+        print(f"Spawned video CNN/Transformer training: {call.object_id}", flush=True)
     elif model == "pose":
-        train_pose_transformer.remote(
+        call = train_pose_transformer.spawn(
             epochs=epochs,
             batch_size=batch_size or 32,
         )
+        print(f"Spawned pose Transformer training: {call.object_id}", flush=True)
     else:
         raise ValueError("model must be 'video' or 'pose'")

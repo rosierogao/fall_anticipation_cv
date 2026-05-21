@@ -48,6 +48,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--num-workers", type=int, default=2)
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from the checkpoint path if it exists.",
+    )
     return parser.parse_args()
 
 
@@ -101,7 +106,28 @@ def main() -> None:
     best_val_loss = float("inf")
     best_val_acc = 0.0
     best_epoch = -1
-    for epoch in range(args.epochs):
+    start_epoch = 0
+    if args.resume and checkpoint_path.exists():
+        saved = torch.load(checkpoint_path, map_location=device)
+        checkpoint_model_name = saved.get("model_name")
+        if checkpoint_model_name and checkpoint_model_name != model_name:
+            raise ValueError(
+                f"Checkpoint model {checkpoint_model_name!r} does not match "
+                f"requested model {model_name!r}."
+            )
+        model.load_state_dict(saved["model_state_dict"])
+        if "optimizer_state_dict" in saved:
+            optimizer.load_state_dict(saved["optimizer_state_dict"])
+        best_val_loss = float(saved.get("val_loss", best_val_loss))
+        best_val_acc = float(saved.get("val_acc", best_val_acc))
+        best_epoch = int(saved.get("epoch", best_epoch))
+        start_epoch = best_epoch + 1
+        print(
+            f"Resuming from {checkpoint_path} at epoch "
+            f"{start_epoch + 1}/{args.epochs}."
+        )
+
+    for epoch in range(start_epoch, args.epochs):
         print(f"\nEpoch {epoch + 1}/{args.epochs}")
         train_loss, train_acc = train_one_epoch(
             model,

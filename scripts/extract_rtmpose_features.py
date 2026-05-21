@@ -158,9 +158,22 @@ def main() -> None:
         video_to_pose_path[video_path] = pose_path
 
     rows = []
+    if output_path := Path(args.output_csv):
+        if output_path.exists():
+            previous = pd.read_csv(output_path)
+            if args.feature_col in previous.columns:
+                rows.extend(previous.to_dict("records"))
+
+    existing_keys = {
+        (row.get("video_path"), int(row.get("window_start", -1)), int(row.get("window_end", -1)))
+        for row in rows
+    }
     for row_idx, row in windows.iterrows():
         video_path = row["video_path"]
         if video_path not in video_to_pose_path:
+            continue
+        key = (video_path, int(row["window_start"]), int(row["window_end"]))
+        if key in existing_keys:
             continue
 
         video_pose = np.load(video_to_pose_path[video_path])
@@ -171,9 +184,9 @@ def main() -> None:
         output_row = row.to_dict()
         output_row[args.feature_col] = str(feature_path)
         rows.append(output_row)
+        existing_keys.add(key)
 
     output = pd.DataFrame(rows)
-    output_path = Path(args.output_csv)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output.to_csv(output_path, index=False)
     print(f"Saved pose window metadata: {output_path}")
