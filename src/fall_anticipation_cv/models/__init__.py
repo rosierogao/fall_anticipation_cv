@@ -10,7 +10,8 @@ from fall_anticipation_cv.models.temporal_transformer import TemporalTransformer
 from fall_anticipation_cv.models.vjepa_predictive import (
     DEFAULT_PREDICTIVE_LOSS_WEIGHT,
     FutureLatentPredictor,
-    VJEPALatentPredictiveBaseline,
+    VJEPABaseline,
+    VJEPALatentPredictiveModel,
 )
 
 __all__ = [
@@ -20,6 +21,7 @@ __all__ = [
     "PoseTransformerBaseline",
     "SimpleVideoCNN",
     "TemporalTransformerClassifier",
-    "VJEPALatentPredictiveBaseline",
+    "VJEPABaseline",
+    "VJEPALatentPredictiveModel",
     "VideoCNNTransformerBaseline",
 ]

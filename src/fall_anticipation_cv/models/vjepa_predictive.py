@@ -15,10 +15,56 @@ DEFAULT_PREDICTIVE_LOSS_WEIGHT = 0.2
 @dataclass
 class VJEPAAnticipationOutput:
     logits: torch.Tensor
-    predicted_future_latent: torch.Tensor
+    predicted_future_latent: torch.Tensor | None = None
     loss: torch.Tensor | None = None
     classification_loss: torch.Tensor | None = None
     predictive_loss: torch.Tensor | None = None
+
+
+class VJEPABaseline(nn.Module):
+    """Classification-only model over frozen V-JEPA latent sequences."""
+
+    def __init__(
+        self,
+        latent_dim: int,
+        d_model: int = 256,
+        num_heads: int = 4,
+        num_layers: int = 1,
+        dropout: float = 0.2,
+        num_classes: int = 2,
+    ):
+        super().__init__()
+        self.classifier = TemporalTransformerClassifier(
+            input_dim=latent_dim,
+            d_model=d_model,
+            num_heads=num_heads,
+            num_layers=num_layers,
+            dropout=dropout,
+            num_classes=num_classes,
+        )
+
+    def forward(
+        self,
+        observed_latents: torch.Tensor,
+        labels: torch.Tensor | None = None,
+        lengths: torch.Tensor | None = None,
+        class_weights: torch.Tensor | None = None,
+    ) -> VJEPAAnticipationOutput:
+        logits = self.classifier(observed_latents, lengths)
+        classification_loss = None
+
+        if labels is not None:
+            classification_loss = F.cross_entropy(
+                logits,
+                labels,
+                weight=class_weights,
+            )
+
+        return VJEPAAnticipationOutput(
+            logits=logits,
+            loss=classification_loss,
+            classification_loss=classification_loss,
+        )
 
 
 class FutureLatentPredictor(nn.Module):
@@ -56,8 +102,8 @@ class FutureLatentPredictor(nn.Module):
         return future.view(observed_latents.shape[0], self.future_steps, self.input_dim)
 
 
-class VJEPALatentPredictiveBaseline(nn.Module):
-    """Anticipation model over frozen V-JEPA latents with a joint objective.
+class VJEPALatentPredictiveModel(nn.Module):
+    """V-JEPA latent anticipation model with classification and prediction losses.
 
     Inputs are precomputed or frozen-encoder V-JEPA latent sequences with shape
     [B, T, D]. If a raw V-JEPA encoder is used, keep it outside this module and
@@ -152,4 +198,3 @@ class VJEPALatentPredictiveBaseline(nn.Module):
             classification_loss=classification_loss,
             predictive_loss=predictive_loss,
         )
-
