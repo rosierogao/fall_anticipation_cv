@@ -16,6 +16,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--feature-col", default="pose_feature_path")
     parser.add_argument("--max-videos", type=int, default=None)
+    parser.add_argument("--video-start", type=int, default=0)
+    parser.add_argument("--video-count", type=int, default=None)
     return parser.parse_args()
 
 
@@ -72,14 +74,23 @@ def frame_to_pose(result: dict, num_keypoints: int | None) -> tuple[object, int]
 
 
 def extract_video_pose(inferencer, video_path: str) -> object:
+    import cv2
     import numpy as np
 
     frames = []
     num_keypoints = None
 
-    for result in inferencer(video_path, show=False, return_vis=False):
+    capture = cv2.VideoCapture(video_path)
+    while True:
+        ok, frame = capture.read()
+        if not ok:
+            break
+
+        result_iter = inferencer(frame, show=False, return_vis=False)
+        result = next(result_iter)
         pose, num_keypoints = frame_to_pose(result, num_keypoints)
         frames.append(pose)
+    capture.release()
 
     if len(frames) == 0:
         num_keypoints = num_keypoints or 17
@@ -92,7 +103,7 @@ def build_window_feature(video_pose, row):
     import numpy as np
 
     indices = [
-        int(sampled_idx * int(row["sample_interval"]))
+        int(round(sampled_idx * float(row["sample_interval"])))
         for sampled_idx in range(int(row["window_start"]), int(row["window_end"]))
     ]
 
@@ -127,6 +138,10 @@ def main() -> None:
 
     video_to_pose_path = {}
     unique_videos = windows["video_path"].drop_duplicates().tolist()
+    if args.video_start:
+        unique_videos = unique_videos[args.video_start :]
+    if args.video_count is not None:
+        unique_videos = unique_videos[: args.video_count]
     if args.max_videos is not None:
         unique_videos = unique_videos[: args.max_videos]
 
@@ -134,7 +149,10 @@ def main() -> None:
         video_id = stable_video_id(video_path)
         pose_path = video_pose_dir / f"{video_id}.npy"
         if not pose_path.exists():
-            print(f"[{video_idx}/{len(unique_videos)}] Extracting RTMPose: {video_path}")
+            print(
+                f"[{video_idx}/{len(unique_videos)}] Extracting RTMPose: {video_path}",
+                flush=True,
+            )
             video_pose = extract_video_pose(inferencer, video_path)
             np.save(pose_path, video_pose)
         video_to_pose_path[video_path] = pose_path
@@ -164,4 +182,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
