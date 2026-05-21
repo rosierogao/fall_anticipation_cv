@@ -62,6 +62,9 @@ Model versions kept in the repo:
 - `PoseTransformerBaseline`: RTMPose features with Transformer temporal
   modeling.
 - `PoseGRUBaseline`: older pose-sequence baseline kept for comparison.
+- `VJEPALatentPredictiveBaseline`: frozen V-JEPA latents with a Transformer
+  temporal classifier and future-latent prediction head. The joint objective is
+  `L = L_cls + 0.2 * L_pred` by default.
 
 ## Train a Pose-Feature Baseline
 
