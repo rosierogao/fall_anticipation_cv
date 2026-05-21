@@ -122,21 +122,29 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
     if n_sampled_frames <= OBS_LEN + K_FRAMES:
         return []
 
-    fall_start_sampled = None
+    action_start_sampled = None
     if label_name == POSITIVE_LABEL:
         fall_start_original = int(float(row["start"]) * original_fps)
-        fall_start_sampled = int(fall_start_original / sample_interval)
+        action_start_sampled = int(fall_start_original / sample_interval)
 
-        if fall_start_sampled <= OBS_LEN:
+        if action_start_sampled <= OBS_LEN:
             return []
+    else:
+        if "start" in row and not pd.isna(row["start"]):
+            action_start_original = int(float(row["start"]) * original_fps)
+            action_start_sampled = int(action_start_original / sample_interval)
+            if action_start_sampled <= OBS_LEN:
+                return []
 
     samples = []
     for target_frame in range(OBS_LEN, n_sampled_frames - K_FRAMES, STRIDE):
         if label_name == POSITIVE_LABEL:
-            y = int(target_frame < fall_start_sampled <= target_frame + K_FRAMES)
-            if target_frame >= fall_start_sampled:
+            y = int(target_frame < action_start_sampled <= target_frame + K_FRAMES)
+            if target_frame >= action_start_sampled:
                 continue
         else:
+            if action_start_sampled is not None and target_frame + K_FRAMES > action_start_sampled:
+                continue
             y = 0
 
         samples.append(
@@ -155,7 +163,7 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
                 "sample_interval": sample_interval,
                 "y": y,
                 "fall_start_frame": (
-                    fall_start_sampled if fall_start_sampled is not None else np.nan
+                    action_start_sampled if action_start_sampled is not None else np.nan
                 ),
             }
         )
