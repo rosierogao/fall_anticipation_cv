@@ -43,19 +43,35 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument(
+        "--raw-pose",
+        action="store_true",
+        help="Use raw RTMPose coordinates instead of centered/scaled pose features.",
+    )
+    parser.add_argument(
+        "--no-velocity",
+        action="store_true",
+        help="Do not append frame-to-frame pose velocity features.",
+    )
     return parser.parse_args()
 
 
-def infer_input_dim(windows: pd.DataFrame, feature_col: str) -> int:
+def infer_input_dim(
+    windows: pd.DataFrame,
+    feature_col: str,
+    normalize: bool,
+    add_velocity: bool,
+) -> int:
     import numpy as np
+    from fall_anticipation_cv.pose_data import prepare_pose_features
 
     feature_path = Path(windows.iloc[0][feature_col])
-    features = np.load(feature_path)
-    if features.ndim == 1:
-        return int(features.shape[0])
-    if features.ndim == 2:
-        return int(features.shape[1])
-    return int(np.prod(features.shape[1:]))
+    features = prepare_pose_features(
+        np.load(feature_path),
+        normalize=normalize,
+        add_velocity=add_velocity,
+    )
+    return int(features.shape[1])
 
 
 def make_loader(
@@ -64,13 +80,20 @@ def make_loader(
     batch_size: int,
     shuffle: bool,
     num_workers: int,
+    normalize: bool,
+    add_velocity: bool,
 ) -> DataLoader:
     from torch.utils.data import DataLoader
 
     from fall_anticipation_cv.pose_data import PoseWindowDataset, collate_pose_windows
 
     return DataLoader(
-        PoseWindowDataset(windows, feature_col=feature_col),
+        PoseWindowDataset(
+            windows,
+            feature_col=feature_col,
+            normalize=normalize,
+            add_velocity=add_velocity,
+        ),
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
@@ -88,16 +111,41 @@ def main() -> None:
 
     windows = pd.read_csv(args.windows_csv)
     train_df, val_df, test_df = split_by_subject(windows)
-    input_dim = infer_input_dim(train_df, args.feature_col)
+    normalize_pose = not args.raw_pose
+    add_velocity = not args.no_velocity
+    input_dim = infer_input_dim(
+        train_df,
+        args.feature_col,
+        normalize=normalize_pose,
+        add_velocity=add_velocity,
+    )
 
     train_loader = make_loader(
-        train_df, args.feature_col, args.batch_size, True, args.num_workers
+        train_df,
+        args.feature_col,
+        args.batch_size,
+        True,
+        args.num_workers,
+        normalize=normalize_pose,
+        add_velocity=add_velocity,
     )
     val_loader = make_loader(
-        val_df, args.feature_col, args.batch_size, False, args.num_workers
+        val_df,
+        args.feature_col,
+        args.batch_size,
+        False,
+        args.num_workers,
+        normalize=normalize_pose,
+        add_velocity=add_velocity,
     )
     test_loader = make_loader(
-        test_df, args.feature_col, args.batch_size, False, args.num_workers
+        test_df,
+        args.feature_col,
+        args.batch_size,
+        False,
+        args.num_workers,
+        normalize=normalize_pose,
+        add_velocity=add_velocity,
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -157,6 +205,8 @@ def main() -> None:
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "input_dim": input_dim,
+                    "normalize_pose": normalize_pose,
+                    "add_velocity": add_velocity,
                     "epoch": epoch,
                     "val_loss": val_loss,
                     "val_acc": val_acc,
@@ -182,6 +232,8 @@ def main() -> None:
         "feature_col": args.feature_col,
         "checkpoint": str(checkpoint),
         "input_dim": input_dim,
+        "normalize_pose": normalize_pose,
+        "add_velocity": add_velocity,
         "epochs": args.epochs,
         "batch_size": args.batch_size,
         "best_epoch": best_epoch,

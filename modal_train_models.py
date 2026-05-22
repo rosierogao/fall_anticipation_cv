@@ -93,8 +93,8 @@ def train_pose_transformer(
     epochs: int = 5,
     batch_size: int = 32,
     windows_csv: str = f"{DATASET_ROOT}/pose_windows_rtmpose.csv",
-    checkpoint: str = f"{DATASET_ROOT}/outputs/pose_transformer_baseline.pt",
-    metrics: str = f"{DATASET_ROOT}/outputs/pose_transformer_metrics.json",
+    checkpoint: str = f"{DATASET_ROOT}/outputs/pose_transformer_normalized.pt",
+    metrics: str = f"{DATASET_ROOT}/outputs/pose_transformer_normalized_metrics.json",
 ) -> str:
     import sys
     from pathlib import Path
@@ -134,14 +134,14 @@ def train_pose_transformer(
 @app.function(
     image=image,
     volumes={DATA_ROOT: volume},
-    gpu="L4",
+    gpu="H100",
     timeout=60 * 60 * 2,
 )
 def evaluate_video_cnn_transformer(
     batch_size: int = 8,
     windows_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
     checkpoint: str = f"{DATASET_ROOT}/outputs/video_cnn_transformer_baseline.pt",
-    metrics: str = f"{DATASET_ROOT}/outputs/video_cnn_transformer_epoch1_eval_metrics.json",
+    metrics: str = f"{DATASET_ROOT}/outputs/video_cnn_transformer_h100_eval_metrics.json",
 ) -> str:
     import sys
 
