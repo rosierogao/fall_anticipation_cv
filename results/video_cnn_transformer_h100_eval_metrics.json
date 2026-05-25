@@ -1,0 +1,40 @@
+{
+  "model": "VideoCNNTransformerBaseline",
+  "checkpoint_path": "/data/final_project_dataset/outputs/video_cnn_transformer.pt",
+  "metrics_path": "/data/final_project_dataset/outputs/video_cnn_transformer_h100_eval_metrics.json",
+  "windows_csv": "/data/final_project_dataset/windows_gmdcsa24.csv",
+  "evaluation_gpu": "H100",
+  "classification_threshold": 0.5,
+  "best_validation_epoch_1_indexed": 5,
+  "validation_loss": 0.6033136483301152,
+  "validation_accuracy": 0.8134715025906736,
+  "test_loss": 0.6416767232903432,
+  "test_accuracy": 0.7494407158836689,
+  "validation_metrics": {
+    "tn": 307,
+    "fp": 14,
+    "fn": 58,
+    "tp": 7,
+    "positive_precision": 0.3333333333333333,
+    "positive_recall": 0.1076923076923077,
+    "positive_f1": 0.16279069767441862
+  },
+  "test_metrics": {
+    "tn": 325,
+    "fp": 36,
+    "fn": 76,
+    "tp": 10,
+    "positive_precision": 0.21739130434782608,
+    "positive_recall": 0.11627906976744186,
+    "positive_f1": 0.15151515151515152
+  },
+  "architecture": {
+    "input": "raw RGB video windows",
+    "frame_encoder": "3 convolutional blocks",
+    "temporal_model": "Transformer encoder",
+    "transformer_layers": 1,
+    "attention_heads": 4,
+    "trainable_parameters_approx": 309000,
+    "loss": "class-weighted cross entropy"
+  }
+}

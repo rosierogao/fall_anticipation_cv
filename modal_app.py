@@ -95,9 +95,9 @@ def prepare_windows(
 )
 def train_baseline(
     windows_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
-    checkpoint_path: str = f"{DATASET_ROOT}/outputs/baseline_simple_video_cnn.pt",
-    metrics_path: str = f"{DATASET_ROOT}/outputs/baseline_metrics.json",
-    video_model: str = "cnn",
+    checkpoint_path: str = f"{DATASET_ROOT}/outputs/video_cnn_transformer.pt",
+    metrics_path: str = f"{DATASET_ROOT}/outputs/video_cnn_transformer_metrics.json",
+    video_model: str = "transformer",
     epochs: int = 1,
     batch_size: int = 8,
     num_workers: int = 2,
@@ -111,10 +111,7 @@ def train_baseline(
     from torch.utils.data import DataLoader
 
     from fall_anticipation_cv.data import FallWindowDataset, split_by_subject
-    from fall_anticipation_cv.models.baseline import (
-        SimpleVideoCNN,
-        VideoCNNTransformerBaseline,
-    )
+    from fall_anticipation_cv.models.baseline import VideoCNNTransformerBaseline
     from fall_anticipation_cv.training_common import (
         binary_classification_metrics,
         compute_class_weights,
@@ -145,12 +142,10 @@ def train_baseline(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    if video_model == "transformer":
-        model = VideoCNNTransformerBaseline(num_classes=2).to(device)
-        model_name = "video_cnn_transformer_baseline"
-    else:
-        model = SimpleVideoCNN(num_classes=2).to(device)
-        model_name = "simple_video_cnn"
+    if video_model != "transformer":
+        raise ValueError("Only video_model='transformer' is supported.")
+    model = VideoCNNTransformerBaseline(num_classes=2).to(device)
+    model_name = "video_cnn_transformer_baseline"
 
     class_weights = compute_class_weights(
         torch.tensor(train_df["y"].to_numpy(), dtype=torch.long)
@@ -281,7 +276,7 @@ def main(
     extract_pose: bool = False,
     epochs: int = 1,
     batch_size: int = 8,
-    video_model: str = "cnn",
+    video_model: str = "transformer",
     max_pose_videos: int | None = None,
 ) -> None:
     windows_csv = f"{DATASET_ROOT}/windows_gmdcsa24.csv"

@@ -11,10 +11,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from fall_anticipation_cv.data import FallWindowDataset, split_by_subject
-from fall_anticipation_cv.models.baseline import (
-    SimpleVideoCNN,
-    VideoCNNTransformerBaseline,
-)
+from fall_anticipation_cv.models.baseline import VideoCNNTransformerBaseline
 from fall_anticipation_cv.training_common import (
     binary_classification_metrics,
     compute_class_weights,
@@ -29,19 +26,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--windows-csv", required=True, help="Window metadata CSV.")
     parser.add_argument(
         "--checkpoint",
-        default="outputs/baseline_simple_video_cnn.pt",
+        default="outputs/video_cnn_transformer.pt",
         help="Path for the best validation checkpoint.",
     )
     parser.add_argument(
         "--metrics",
-        default="outputs/baseline_metrics.json",
+        default="outputs/video_cnn_transformer_metrics.json",
         help="Path for the training metrics JSON.",
     )
     parser.add_argument(
         "--model",
-        choices=["cnn", "transformer"],
-        default="cnn",
-        help="Temporal model to train on top of the frame encoder.",
+        choices=["transformer"],
+        default="transformer",
+        help="Video model to train.",
     )
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=8)
@@ -90,12 +87,8 @@ def main() -> None:
     test_loader = make_loader(test_df, args.batch_size, False, args.num_workers)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if args.model == "transformer":
-        model = VideoCNNTransformerBaseline(num_classes=2).to(device)
-        model_name = "video_cnn_transformer_baseline"
-    else:
-        model = SimpleVideoCNN(num_classes=2).to(device)
-        model_name = "simple_video_cnn"
+    model = VideoCNNTransformerBaseline(num_classes=2).to(device)
+    model_name = "video_cnn_transformer_baseline"
 
     class_weights = compute_class_weights(
         torch.tensor(train_df["y"].to_numpy(), dtype=torch.long)

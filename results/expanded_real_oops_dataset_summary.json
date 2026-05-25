@@ -1,0 +1,79 @@
+{
+  "output_csv": "/data/final_project_dataset/windows_real_oops_sampled.csv",
+  "include_oops": true,
+  "oops_negative_ratio": 3.0,
+  "sample_seed": 42,
+  "sampling_strategy": "Keep all GMDCSA24 and LE2I real windows. Keep all OOPs positive windows. Sample OOPs negative windows by label type and video path to target a 3:1 negative:positive ratio within OOPs.",
+  "config": {
+    "target_fps": 10,
+    "obs_sec": 1.6,
+    "horizon_sec": 1.0,
+    "stride_sec": 0.2
+  },
+  "label_rows": {
+    "total": 4587,
+    "existing": 4587,
+    "by_dataset": {
+      "GMDCSA24": 458,
+      "le2i": 107,
+      "OOPs": 4022
+    }
+  },
+  "windows_before_oops_negative_sampling": {
+    "total": 30667,
+    "by_dataset_and_class": {
+      "GMDCSA24": {
+        "negative": 1181,
+        "positive": 143
+      },
+      "le2i": {
+        "negative": 1907,
+        "positive": 394
+      },
+      "OOPs": {
+        "negative": 23275,
+        "positive": 3767
+      }
+    }
+  },
+  "windows_after_oops_negative_sampling": {
+    "total": 16795,
+    "negative": 12491,
+    "positive": 4304,
+    "by_dataset_and_class": {
+      "GMDCSA24": {
+        "negative": 1181,
+        "positive": 143
+      },
+      "le2i": {
+        "negative": 1907,
+        "positive": 394
+      },
+      "OOPs": {
+        "negative": 9403,
+        "positive": 3767
+      }
+    },
+    "unique_videos_with_windows": 928,
+    "unique_videos_with_positive_windows": 784
+  },
+  "oops_fps_audit": {
+    "num_videos_checked": 818,
+    "num_videos_with_valid_metadata": 818,
+    "fps_counts": {
+      "23.98": 154,
+      "29.97": 568,
+      "30.0": 96
+    },
+    "fps_summary": {
+      "min": 23.98,
+      "median": 29.97,
+      "max": 30.0
+    },
+    "sample_interval_to_10fps_summary": {
+      "min": 2.398,
+      "median": 2.997,
+      "max": 3.0
+    }
+  }
+}

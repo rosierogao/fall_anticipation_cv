@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from fall_anticipation_cv.data import split_by_subject
 from fall_anticipation_cv.models.vjepa_predictive import (
     DEFAULT_PREDICTIVE_LOSS_WEIGHT,
+    VJEPABaseline,
     VJEPALatentPredictiveModel,
 )
 from fall_anticipation_cv.training_common import (
@@ -25,11 +26,17 @@ from fall_anticipation_cv.vjepa_data import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train V-JEPA latent predictive model.")
+    parser = argparse.ArgumentParser(description="Train a V-JEPA latent model.")
     parser.add_argument("--windows-csv", required=True)
     parser.add_argument("--feature-col", default="vjepa_feature_path")
     parser.add_argument("--checkpoint", default="outputs/vjepa_latent_predictive.pt")
     parser.add_argument("--metrics", default="outputs/vjepa_latent_predictive_metrics.json")
+    parser.add_argument(
+        "--model",
+        choices=["baseline", "predictive"],
+        default="predictive",
+        help="Train classification-only V-JEPA baseline or predictive-loss model.",
+    )
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--d-model", type=int, default=256)
@@ -70,7 +77,7 @@ def infer_shapes(windows: pd.DataFrame, feature_col: str) -> tuple[int, int]:
     return int(observed.shape[-1]), int(future.shape[0])
 
 
-def run_epoch(model, loader, optimizer, device, class_weights):
+def run_epoch(model, loader, optimizer, device, class_weights, use_predictive_loss: bool):
     from tqdm import tqdm
 
     model.train()
@@ -87,20 +94,29 @@ def run_epoch(model, loader, optimizer, device, class_weights):
         lengths = lengths.to(device)
 
         optimizer.zero_grad()
-        output = model(
-            observed,
-            future_latents=future,
-            labels=labels,
-            lengths=lengths,
-            class_weights=class_weights,
-        )
+        if use_predictive_loss:
+            output = model(
+                observed,
+                future_latents=future,
+                labels=labels,
+                lengths=lengths,
+                class_weights=class_weights,
+            )
+        else:
+            output = model(
+                observed,
+                labels=labels,
+                lengths=lengths,
+                class_weights=class_weights,
+            )
         output.loss.backward()
         optimizer.step()
 
         batch_size = labels.size(0)
         total_loss += output.loss.item() * batch_size
         total_cls_loss += output.classification_loss.item() * batch_size
-        total_pred_loss += output.predictive_loss.item() * batch_size
+        pred_loss = 0.0 if output.predictive_loss is None else output.predictive_loss.item()
+        total_pred_loss += pred_loss * batch_size
         predictions = torch.argmax(output.logits, dim=1)
         correct += (predictions == labels).sum().item()
         total += batch_size
@@ -114,7 +130,7 @@ def run_epoch(model, loader, optimizer, device, class_weights):
 
 
 @torch.no_grad()
-def evaluate(model, loader, device, class_weights):
+def evaluate(model, loader, device, class_weights, use_predictive_loss: bool):
     from tqdm import tqdm
 
     model.eval()
@@ -132,19 +148,28 @@ def evaluate(model, loader, device, class_weights):
         future = future.to(device)
         lengths = lengths.to(device)
 
-        output = model(
-            observed,
-            future_latents=future,
-            labels=labels,
-            lengths=lengths,
-            class_weights=class_weights,
-        )
+        if use_predictive_loss:
+            output = model(
+                observed,
+                future_latents=future,
+                labels=labels,
+                lengths=lengths,
+                class_weights=class_weights,
+            )
+        else:
+            output = model(
+                observed,
+                labels=labels,
+                lengths=lengths,
+                class_weights=class_weights,
+            )
         predictions = torch.argmax(output.logits, dim=1)
 
         batch_size = labels.size(0)
         total_loss += output.loss.item() * batch_size
         total_cls_loss += output.classification_loss.item() * batch_size
-        total_pred_loss += output.predictive_loss.item() * batch_size
+        pred_loss = 0.0 if output.predictive_loss is None else output.predictive_loss.item()
+        total_pred_loss += pred_loss * batch_size
         correct += (predictions == labels).sum().item()
         total += batch_size
         predictions_all.extend(predictions.cpu().numpy().tolist())
@@ -195,13 +220,23 @@ def main() -> None:
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = VJEPALatentPredictiveModel(
-        latent_dim=latent_dim,
-        d_model=args.d_model,
-        num_layers=args.num_layers,
-        future_steps=future_steps,
-        predictive_loss_weight=args.predictive_loss_weight,
-    ).to(device)
+    use_predictive_loss = args.model == "predictive"
+    if use_predictive_loss:
+        model = VJEPALatentPredictiveModel(
+            latent_dim=latent_dim,
+            d_model=args.d_model,
+            num_layers=args.num_layers,
+            future_steps=future_steps,
+            predictive_loss_weight=args.predictive_loss_weight,
+        ).to(device)
+        model_name = "vjepa_latent_predictive"
+    else:
+        model = VJEPABaseline(
+            latent_dim=latent_dim,
+            d_model=args.d_model,
+            num_layers=args.num_layers,
+        ).to(device)
+        model_name = "vjepa_baseline"
 
     class_weights = compute_class_weights(
         torch.tensor(train_df["y"].to_numpy(), dtype=torch.long)
@@ -223,12 +258,14 @@ def main() -> None:
             optimizer,
             device,
             class_weights,
+            use_predictive_loss,
         )
         val_loss, val_cls_loss, val_pred_loss, val_acc, _, _ = evaluate(
             model,
             val_loader,
             device,
             class_weights,
+            use_predictive_loss,
         )
         print(
             "Train loss: "
@@ -256,10 +293,11 @@ def main() -> None:
                     "val_acc": val_acc,
                     "class_weights": class_weights.detach().cpu().tolist(),
                     "predictive_loss_weight": args.predictive_loss_weight,
+                    "model_name": model_name,
                 },
                 checkpoint_path,
             )
-            print(f"Saved best V-JEPA predictive checkpoint: {checkpoint_path}")
+            print(f"Saved best V-JEPA checkpoint: {checkpoint_path}")
 
     saved = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(saved["model_state_dict"])
@@ -268,10 +306,11 @@ def main() -> None:
         test_loader,
         device,
         class_weights,
+        use_predictive_loss,
     )
 
     metrics = {
-        "model": "vjepa_latent_predictive",
+        "model": model_name,
         "windows_csv": args.windows_csv,
         "feature_col": args.feature_col,
         "checkpoint": str(checkpoint_path),
@@ -287,7 +326,7 @@ def main() -> None:
         "test_predictive_loss": test_pred_loss,
         "test_acc": test_acc,
         "class_weights": class_weights.detach().cpu().tolist(),
-        "predictive_loss_weight": args.predictive_loss_weight,
+        "predictive_loss_weight": args.predictive_loss_weight if use_predictive_loss else 0.0,
         **binary_classification_metrics(labels, predictions),
     }
     metrics_path.write_text(json.dumps(metrics, indent=2) + "\n")

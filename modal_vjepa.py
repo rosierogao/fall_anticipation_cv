@@ -97,6 +97,8 @@ def train_vjepa_predictive(
     metrics: str = f"{DATASET_ROOT}/outputs/vjepa_latent_predictive_metrics.json",
     epochs: int = 5,
     batch_size: int = 32,
+    model: str = "predictive",
+    predictive_loss_weight: float = 0.2,
 ) -> str:
     import sys
     from pathlib import Path
@@ -117,10 +119,14 @@ def train_vjepa_predictive(
             checkpoint,
             "--metrics",
             metrics,
+            "--model",
+            model,
             "--epochs",
             str(epochs),
             "--batch-size",
             str(batch_size),
+            "--predictive-loss-weight",
+            str(predictive_loss_weight),
             "--num-workers",
             "0",
         ]
@@ -148,6 +154,35 @@ def main(
             batch_size=batch_size,
         )
         print(f"Spawned V-JEPA predictive training: {call.object_id}", flush=True)
+    elif action == "train-baseline":
+        metrics = train_vjepa_predictive.remote(
+            checkpoint=f"{DATASET_ROOT}/outputs/vjepa_baseline.pt",
+            metrics=f"{DATASET_ROOT}/outputs/vjepa_baseline_metrics.json",
+            epochs=epochs,
+            batch_size=batch_size,
+            model="baseline",
+        )
+        print(f"Completed V-JEPA baseline training: {metrics}", flush=True)
+    elif action == "train-predictive-sweep":
+        for weight in (0.1, 0.5):
+            metrics = train_vjepa_predictive.remote(
+                checkpoint=(
+                    f"{DATASET_ROOT}/outputs/"
+                    f"vjepa_latent_predictive_lambda_{str(weight).replace('.', 'p')}.pt"
+                ),
+                metrics=(
+                    f"{DATASET_ROOT}/outputs/"
+                    f"vjepa_latent_predictive_lambda_{str(weight).replace('.', 'p')}_metrics.json"
+                ),
+                epochs=epochs,
+                batch_size=batch_size,
+                model="predictive",
+                predictive_loss_weight=weight,
+            )
+            print(
+                f"Completed V-JEPA predictive lambda={weight}: {metrics}",
+                flush=True,
+            )
     elif action == "all":
         output_csv = extract_vjepa_latents.remote(
             batch_size=batch_size,
@@ -160,4 +195,7 @@ def main(
         )
         print(f"Spawned V-JEPA predictive training: {call.object_id}", flush=True)
     else:
-        raise ValueError("action must be 'extract', 'train', or 'all'")
+        raise ValueError(
+            "action must be 'extract', 'train', 'train-baseline', "
+            "'train-predictive-sweep', or 'all'"
+        )

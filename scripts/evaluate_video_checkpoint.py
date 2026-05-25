@@ -10,10 +10,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from fall_anticipation_cv.data import FallWindowDataset, split_by_subject
-from fall_anticipation_cv.models.baseline import (
-    SimpleVideoCNN,
-    VideoCNNTransformerBaseline,
-)
+from fall_anticipation_cv.models.baseline import VideoCNNTransformerBaseline
 from fall_anticipation_cv.training_common import (
     binary_classification_metrics,
     compute_class_weights,
@@ -27,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--windows-csv", required=True)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--metrics", required=True)
-    parser.add_argument("--model", choices=["cnn", "transformer"], default="transformer")
+    parser.add_argument("--model", choices=["transformer"], default="transformer")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--num-workers", type=int, default=0)
     return parser.parse_args()
@@ -54,12 +51,8 @@ def main() -> None:
     train_df, val_df, test_df = split_by_subject(windows)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if args.model == "transformer":
-        model = VideoCNNTransformerBaseline(num_classes=2).to(device)
-        model_name = "video_cnn_transformer_baseline"
-    else:
-        model = SimpleVideoCNN(num_classes=2).to(device)
-        model_name = "simple_video_cnn"
+    model = VideoCNNTransformerBaseline(num_classes=2).to(device)
+    model_name = "video_cnn_transformer_baseline"
 
     saved = torch.load(args.checkpoint, map_location=device)
     model.load_state_dict(saved["model_state_dict"])

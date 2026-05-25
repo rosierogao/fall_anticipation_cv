@@ -9,9 +9,17 @@ import torch
 from torch.utils.data import DataLoader
 
 from fall_anticipation_cv.data import FallWindowDataset, split_by_subject
+from fall_anticipation_cv.fusion_data import (
+    PoseVJEPALatentWindowDataset,
+    collate_pose_vjepa_windows,
+)
 from fall_anticipation_cv.models.baseline import VideoCNNTransformerBaseline
 from fall_anticipation_cv.models.pose_baseline import PoseTransformerBaseline
-from fall_anticipation_cv.models.vjepa_predictive import VJEPALatentPredictiveModel
+from fall_anticipation_cv.models.pose_vjepa_fusion import PoseVJEPAFusionTransformer
+from fall_anticipation_cv.models.vjepa_predictive import (
+    VJEPABaseline,
+    VJEPALatentPredictiveModel,
+)
 from fall_anticipation_cv.pose_data import PoseWindowDataset, collate_pose_windows
 from fall_anticipation_cv.training_common import binary_classification_metrics
 from fall_anticipation_cv.vjepa_data import (
@@ -25,7 +33,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--models",
         nargs="+",
-        choices=["video", "pose", "vjepa"],
+        choices=[
+            "video",
+            "pose",
+            "vjepa",
+            "vjepa-baseline",
+            "vjepa-lambda-0p1",
+            "vjepa-lambda-0p2",
+            "vjepa-lambda-0p5",
+            "fusion",
+        ],
         default=["video", "pose", "vjepa"],
     )
     parser.add_argument("--data-root", default="/data/final_project_dataset")
@@ -214,13 +231,21 @@ def predict_vjepa(
     _train_df, val_df, test_df = split_by_subject(windows)
     saved = torch.load(checkpoint, map_location=device)
 
-    model = VJEPALatentPredictiveModel(
-        latent_dim=int(saved["latent_dim"]),
-        d_model=256,
-        num_layers=1,
-        future_steps=int(saved["future_steps"]),
-        predictive_loss_weight=float(saved.get("predictive_loss_weight", 0.2)),
-    ).to(device)
+    model_name = saved.get("model_name", "")
+    if model_name == "vjepa_baseline":
+        model = VJEPABaseline(
+            latent_dim=int(saved["latent_dim"]),
+            d_model=256,
+            num_layers=1,
+        ).to(device)
+    else:
+        model = VJEPALatentPredictiveModel(
+            latent_dim=int(saved["latent_dim"]),
+            d_model=256,
+            num_layers=1,
+            future_steps=int(saved["future_steps"]),
+            predictive_loss_weight=float(saved.get("predictive_loss_weight", 0.2)),
+        ).to(device)
     model.load_state_dict(saved["model_state_dict"])
     model.eval()
 
@@ -239,6 +264,83 @@ def predict_vjepa(
         for observed, labels, _future, lengths in make_loader(df):
             output = model(observed.to(device), lengths=lengths.to(device))
             probs = torch.softmax(output.logits, dim=1)[:, 1]
+            labels_all.extend(labels.numpy().tolist())
+            probs_all.extend(probs.cpu().numpy().tolist())
+        return labels_all, probs_all
+
+    val_labels, val_probs = collect(val_df)
+    test_labels, test_probs = collect(test_df)
+    return val_labels, val_probs, test_labels, test_probs
+
+
+def load_fusion_windows(
+    vjepa_windows_csv: Path,
+    pose_windows_csv: Path,
+) -> pd.DataFrame:
+    windows = pd.read_csv(vjepa_windows_csv)
+    if "pose_feature_path" in windows.columns:
+        return windows
+
+    pose_windows = pd.read_csv(pose_windows_csv)
+    join_cols = ["video_path", "window_start", "window_end"]
+    pose_feature_map = pose_windows[join_cols + ["pose_feature_path"]].drop_duplicates(
+        subset=join_cols
+    )
+    merged = windows.merge(pose_feature_map, on=join_cols, how="left")
+    return merged.dropna(subset=["pose_feature_path"])
+
+
+@torch.no_grad()
+def predict_fusion(
+    vjepa_windows_csv: Path,
+    pose_windows_csv: Path,
+    checkpoint: Path,
+    batch_size: int,
+    device: torch.device,
+) -> tuple[list[int], list[float], list[int], list[float]]:
+    windows = load_fusion_windows(vjepa_windows_csv, pose_windows_csv)
+    _train_df, val_df, test_df = split_by_subject(windows)
+    saved = torch.load(checkpoint, map_location=device)
+
+    model = PoseVJEPAFusionTransformer(
+        pose_dim=int(saved["pose_dim"]),
+        vjepa_dim=int(saved["vjepa_dim"]),
+        projection_dim=int(saved.get("projection_dim", 256)),
+        d_model=int(saved.get("d_model", 256)),
+        num_heads=int(saved.get("num_heads", 4)),
+        num_layers=int(saved.get("num_layers", 1)),
+    ).to(device)
+    model.load_state_dict(saved["model_state_dict"])
+    model.eval()
+
+    normalize_pose = bool(saved.get("normalize_pose", True))
+    add_velocity = bool(saved.get("add_velocity", True))
+
+    def make_loader(df: pd.DataFrame) -> DataLoader:
+        return DataLoader(
+            PoseVJEPALatentWindowDataset(
+                df,
+                pose_feature_col="pose_feature_path",
+                vjepa_feature_col="vjepa_feature_path",
+                normalize_pose=normalize_pose,
+                add_velocity=add_velocity,
+            ),
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=4,
+            collate_fn=collate_pose_vjepa_windows,
+        )
+
+    def collect(df: pd.DataFrame) -> tuple[list[int], list[float]]:
+        labels_all = []
+        probs_all = []
+        for pose_features, labels, vjepa_latents, lengths in make_loader(df):
+            logits = model(
+                pose_features.to(device),
+                vjepa_latents.to(device),
+                lengths.to(device),
+            )
+            probs = torch.softmax(logits, dim=1)[:, 1]
             labels_all.extend(labels.numpy().tolist())
             probs_all.extend(probs.cpu().numpy().tolist())
         return labels_all, probs_all
@@ -279,6 +381,47 @@ def evaluate_model(
             device=device,
         )
         display_name = "vjepa_latent_predictive"
+    elif name == "vjepa-baseline":
+        val_labels, val_probs, test_labels, test_probs = predict_vjepa(
+            data_root / "vjepa_windows.csv",
+            data_root / "outputs/vjepa_baseline.pt",
+            batch_size=batch_size,
+            device=device,
+        )
+        display_name = "vjepa_baseline"
+    elif name == "vjepa-lambda-0p1":
+        val_labels, val_probs, test_labels, test_probs = predict_vjepa(
+            data_root / "vjepa_windows.csv",
+            data_root / "outputs/vjepa_latent_predictive_lambda_0p1.pt",
+            batch_size=batch_size,
+            device=device,
+        )
+        display_name = "vjepa_latent_predictive_lambda_0p1"
+    elif name == "vjepa-lambda-0p2":
+        val_labels, val_probs, test_labels, test_probs = predict_vjepa(
+            data_root / "vjepa_windows.csv",
+            data_root / "outputs/vjepa_latent_predictive.pt",
+            batch_size=batch_size,
+            device=device,
+        )
+        display_name = "vjepa_latent_predictive_lambda_0p2"
+    elif name == "vjepa-lambda-0p5":
+        val_labels, val_probs, test_labels, test_probs = predict_vjepa(
+            data_root / "vjepa_windows.csv",
+            data_root / "outputs/vjepa_latent_predictive_lambda_0p5.pt",
+            batch_size=batch_size,
+            device=device,
+        )
+        display_name = "vjepa_latent_predictive_lambda_0p5"
+    elif name == "fusion":
+        val_labels, val_probs, test_labels, test_probs = predict_fusion(
+            data_root / "vjepa_windows.csv",
+            data_root / "pose_windows_rtmpose.csv",
+            data_root / "outputs/pose_vjepa_fusion.pt",
+            batch_size=batch_size,
+            device=device,
+        )
+        display_name = "pose_vjepa_fusion_transformer"
     else:
         raise ValueError(f"Unsupported model: {name}")
 

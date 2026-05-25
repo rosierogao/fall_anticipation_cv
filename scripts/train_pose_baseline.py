@@ -11,10 +11,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from fall_anticipation_cv.data import split_by_subject
-from fall_anticipation_cv.models.pose_baseline import (
-    PoseGRUBaseline,
-    PoseTransformerBaseline,
-)
+from fall_anticipation_cv.models.pose_baseline import PoseTransformerBaseline
 from fall_anticipation_cv.training_common import (
     binary_classification_metrics,
     compute_class_weights,
@@ -28,11 +25,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a pose-feature baseline.")
     parser.add_argument("--windows-csv", required=True)
     parser.add_argument("--feature-col", default="pose_feature_path")
-    parser.add_argument("--checkpoint", default="outputs/pose_gru_baseline.pt")
-    parser.add_argument("--metrics", default="outputs/pose_gru_metrics.json")
+    parser.add_argument("--checkpoint", default="outputs/pose_transformer_baseline.pt")
+    parser.add_argument("--metrics", default="outputs/pose_transformer_metrics.json")
     parser.add_argument(
         "--model",
-        choices=["gru", "transformer"],
+        choices=["transformer"],
         default="transformer",
         help="Temporal model to train on pose features.",
     )
@@ -149,20 +146,12 @@ def main() -> None:
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if args.model == "gru":
-        model = PoseGRUBaseline(
-            input_dim=input_dim,
-            hidden_dim=args.hidden_dim,
-            num_layers=args.num_layers,
-        ).to(device)
-        model_name = "pose_gru_baseline"
-    else:
-        model = PoseTransformerBaseline(
-            input_dim=input_dim,
-            d_model=args.hidden_dim,
-            num_layers=args.num_layers,
-        ).to(device)
-        model_name = "pose_transformer_baseline"
+    model = PoseTransformerBaseline(
+        input_dim=input_dim,
+        d_model=args.hidden_dim,
+        num_layers=args.num_layers,
+    ).to(device)
+    model_name = "pose_transformer_baseline"
     class_weights = compute_class_weights(
         torch.tensor(train_df["y"].to_numpy(), dtype=torch.long)
     ).to(device)

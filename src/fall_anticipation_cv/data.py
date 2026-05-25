@@ -21,6 +21,7 @@ STRIDE = int(STRIDE_SEC * TARGET_FPS)
 POSITIVE_LABEL = "fall"
 NEGATIVE_LABELS = {
     "walk",
+    "walking",
     "sitting",
     "standing",
     "sit_down",
@@ -39,6 +40,10 @@ VIDEO_EXTENSIONS = {
     ".mov",
     ".mkv",
     ".wmv",
+}
+
+LABEL_NORMALIZATION = {
+    "walking": "walk",
 }
 
 
@@ -64,6 +69,57 @@ def resolve_gmd_video_path(label_path: str, data_root: str | Path) -> str | None
     return matches[0] if matches else None
 
 
+def first_existing_path(paths: list[Path]) -> Path:
+    for path in paths:
+        if path.exists():
+            return path
+    return paths[0]
+
+
+def resolve_csv_video_path(
+    label_path: str,
+    source_root: str | Path,
+    alternate_prefixes: tuple[str, ...] = (),
+) -> str | None:
+    source_root = Path(source_root)
+    rel_path = str(label_path).strip()
+    candidate_rel_paths = [rel_path]
+
+    for prefix in alternate_prefixes:
+        prefix = prefix.strip("/")
+        if rel_path.startswith(f"{prefix}/"):
+            candidate_rel_paths.append(rel_path.split("/", 1)[1])
+
+    for candidate_rel_path in candidate_rel_paths:
+        candidate = source_root / candidate_rel_path
+        candidates = [candidate] if candidate.suffix else []
+        candidates.extend(candidate.with_suffix(suffix) for suffix in VIDEO_EXTENSIONS)
+
+        for path in candidates:
+            if path.exists():
+                return str(path)
+
+        matches = sorted(
+            path
+            for path in source_root.glob(f"{candidate_rel_path}.*")
+            if path.suffix.lower() in VIDEO_EXTENSIONS
+        )
+        if matches:
+            return str(matches[0])
+
+    return None
+
+
+def load_label_map(labels_dir: Path) -> dict:
+    label_map = pd.read_csv(labels_dir / "label2id.csv")
+    return dict(zip(label_map["id"], label_map["label"]))
+
+
+def normalize_label_name(label_name: object) -> str:
+    normalized = str(label_name).strip().lower()
+    return LABEL_NORMALIZATION.get(normalized, normalized)
+
+
 def load_gmd_labels(data_root: str | Path) -> pd.DataFrame:
     data_root = dataset_root(data_root)
     labels_dir = data_root / "labels"
@@ -71,10 +127,9 @@ def load_gmd_labels(data_root: str | Path) -> pd.DataFrame:
     raw_csv = labels_dir / "GMDCSA24.csv"
 
     labels = pd.read_csv(matched_csv if matched_csv.exists() else raw_csv)
-    label_map = pd.read_csv(labels_dir / "label2id.csv")
-    id_to_label = dict(zip(label_map["id"], label_map["label"]))
+    id_to_label = load_label_map(labels_dir)
 
-    labels["label_name"] = labels["label"].map(id_to_label)
+    labels["label_name"] = labels["label"].map(id_to_label).apply(normalize_label_name)
 
     resolved_video_paths = labels["path"].apply(
         lambda path: resolve_gmd_video_path(path, data_root)
@@ -95,6 +150,42 @@ def load_gmd_labels(data_root: str | Path) -> pd.DataFrame:
     labels["split_group"] = labels["subject"].apply(
         lambda subject: f"GMDCSA24:{subject}"
     )
+    return labels
+
+
+def load_oops_labels(data_root: str | Path) -> pd.DataFrame:
+    data_root = dataset_root(data_root)
+    labels_dir = data_root / "labels"
+    csv_path = first_existing_path(
+        [
+            labels_dir / "OOPs.csv",
+            labels_dir / "OOPS.csv",
+            labels_dir / "oops.csv",
+        ]
+    )
+    oops_root = first_existing_path(
+        [
+            data_root / "OOPs",
+            data_root / "OOPS",
+            data_root / "oops",
+        ]
+    )
+
+    if not csv_path.exists() or not oops_root.exists():
+        return pd.DataFrame()
+
+    labels = pd.read_csv(csv_path)
+    id_to_label = load_label_map(labels_dir)
+    labels["label_name"] = labels["label"].map(id_to_label).apply(normalize_label_name)
+    labels["dataset"] = "OOPs"
+    labels["video_path"] = labels["path"].apply(
+        lambda path: resolve_csv_video_path(path, oops_root, alternate_prefixes=("falls",))
+    )
+    labels["video_exists"] = labels["video_path"].apply(
+        lambda path: path is not None and os.path.exists(path)
+    )
+    labels["subject"] = labels["path"].astype(str)
+    labels["split_group"] = labels["path"].astype(str).apply(lambda path: f"OOPs:{path}")
     return labels
 
 
@@ -175,12 +266,20 @@ def load_le2i_labels(data_root: str | Path) -> pd.DataFrame:
     return labels
 
 
-def load_all_labels(data_root: str | Path, include_le2i: bool = True) -> pd.DataFrame:
+def load_all_labels(
+    data_root: str | Path,
+    include_le2i: bool = True,
+    include_oops: bool = False,
+) -> pd.DataFrame:
     label_frames = [load_gmd_labels(data_root)]
     if include_le2i:
         le2i_labels = load_le2i_labels(data_root)
         if not le2i_labels.empty:
             label_frames.append(le2i_labels)
+    if include_oops:
+        oops_labels = load_oops_labels(data_root)
+        if not oops_labels.empty:
+            label_frames.append(oops_labels)
 
     return pd.concat(label_frames, ignore_index=True, sort=False)
 
@@ -316,6 +415,122 @@ def build_window_dataframe(labels: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def sample_oops_negative_windows(
+    windows: pd.DataFrame,
+    negative_to_positive_ratio: float = 3.0,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    oops_mask = windows["dataset"].astype(str).str.lower() == "oops"
+    oops_positive = windows[oops_mask & (windows["y"] == 1)]
+    oops_negative = windows[oops_mask & (windows["y"] == 0)]
+
+    target_negative_count = int(round(len(oops_positive) * negative_to_positive_ratio))
+    if (
+        oops_negative.empty
+        or len(oops_positive) == 0
+        or len(oops_negative) <= target_negative_count
+    ):
+        return windows.reset_index(drop=True)
+
+    label_names = sorted(oops_negative["label_name"].dropna().unique())
+    remaining_quota = target_negative_count
+    selected_parts = []
+    rng = np.random.default_rng(random_state)
+
+    for index, label_name in enumerate(label_names):
+        label_windows = oops_negative[oops_negative["label_name"] == label_name]
+        labels_left = len(label_names) - index
+        label_quota = min(len(label_windows), int(np.ceil(remaining_quota / labels_left)))
+        if label_quota <= 0:
+            continue
+
+        group_sizes = label_windows.groupby("video_path").size().sort_index()
+        per_video_quota = max(1, int(np.ceil(label_quota / len(group_sizes))))
+        label_parts = []
+        for _, video_windows in label_windows.groupby("video_path", sort=True):
+            take = min(len(video_windows), per_video_quota)
+            label_parts.append(
+                video_windows.sample(
+                    n=take,
+                    random_state=int(rng.integers(0, np.iinfo(np.int32).max)),
+                )
+            )
+
+        sampled_label = pd.concat(label_parts, ignore_index=False)
+        if len(sampled_label) > label_quota:
+            sampled_label = sampled_label.sample(
+                n=label_quota,
+                random_state=int(rng.integers(0, np.iinfo(np.int32).max)),
+            )
+
+        selected_parts.append(sampled_label)
+        remaining_quota -= len(sampled_label)
+
+    selected_negative = pd.concat(selected_parts, ignore_index=False)
+    selected_indices = set(selected_negative.index)
+    keep_mask = (~oops_mask) | (windows["y"] == 1) | windows.index.isin(selected_indices)
+    return windows[keep_mask].reset_index(drop=True)
+
+
+def assign_group_splits(
+    windows: pd.DataFrame,
+    train_size: float = 0.70,
+    val_size: float = 0.15,
+    test_size: float = 0.15,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    from sklearn.model_selection import GroupShuffleSplit
+
+    split_total = train_size + val_size + test_size
+    if not np.isclose(split_total, 1.0):
+        raise ValueError("train_size + val_size + test_size must equal 1.0")
+
+    group_column = "split_group" if "split_group" in windows.columns else "subject"
+    split_windows = windows.copy()
+    split_windows["split"] = ""
+
+    for dataset_index, (_, dataset_windows) in enumerate(
+        split_windows.groupby("dataset", sort=True)
+    ):
+        dataset_indices = dataset_windows.index.to_numpy()
+        groups = dataset_windows[group_column]
+        unique_groups = groups.nunique()
+
+        if unique_groups < 3:
+            split_windows.loc[dataset_indices, "split"] = "train"
+            continue
+
+        test_splitter = GroupShuffleSplit(
+            n_splits=1,
+            test_size=test_size,
+            random_state=random_state + dataset_index,
+        )
+        train_val_pos, test_pos = next(
+            test_splitter.split(dataset_windows, dataset_windows["y"], groups)
+        )
+
+        train_val = dataset_windows.iloc[train_val_pos]
+        val_fraction_of_train_val = val_size / (train_size + val_size)
+        val_splitter = GroupShuffleSplit(
+            n_splits=1,
+            test_size=val_fraction_of_train_val,
+            random_state=random_state + 100 + dataset_index,
+        )
+        train_pos, val_pos = next(
+            val_splitter.split(
+                train_val,
+                train_val["y"],
+                train_val[group_column],
+            )
+        )
+
+        split_windows.loc[train_val.iloc[train_pos].index, "split"] = "train"
+        split_windows.loc[train_val.iloc[val_pos].index, "split"] = "val"
+        split_windows.loc[dataset_windows.iloc[test_pos].index, "split"] = "test"
+
+    return split_windows.reset_index(drop=True)
+
+
 def validate_windows(windows: pd.DataFrame) -> None:
     if windows.empty:
         raise ValueError(
@@ -347,6 +562,13 @@ def split_by_subject(
     val_random_state: int = 43,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     from sklearn.model_selection import GroupShuffleSplit
+
+    if "split" in windows.columns:
+        train = windows[windows["split"] == "train"].reset_index(drop=True)
+        val = windows[windows["split"] == "val"].reset_index(drop=True)
+        test = windows[windows["split"] == "test"].reset_index(drop=True)
+        if not train.empty and not val.empty and not test.empty:
+            return train, val, test
 
     group_column = "split_group" if "split_group" in windows.columns else "subject"
     groups = windows[group_column]

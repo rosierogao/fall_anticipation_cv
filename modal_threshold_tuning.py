@@ -43,13 +43,23 @@ image = (
 def tune_thresholds(
     output: str = f"{DATASET_ROOT}/outputs/threshold_tuning_metrics.json",
     target_recall: float = 0.75,
+    models: list[str] | None = None,
 ) -> str:
     import subprocess
     import sys
 
+    if models is None:
+        models = [
+            "pose",
+            "vjepa-lambda-0p2",
+            "fusion",
+        ]
+
     cmd = [
         sys.executable,
         f"{PACKAGE_REMOTE_ROOT}/scripts/evaluate_thresholds.py",
+        "--models",
+        *models,
         "--data-root",
         DATASET_ROOT,
         "--output",
@@ -65,4 +75,7 @@ def tune_thresholds(
 
 @app.local_entrypoint()
 def main(target_recall: float = 0.75) -> None:
-    tune_thresholds.remote(target_recall=target_recall)
+    tune_thresholds.remote(
+        output=f"{DATASET_ROOT}/outputs/fusion_comparison_threshold_tuning_metrics.json",
+        target_recall=target_recall,
+    )
