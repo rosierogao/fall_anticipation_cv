@@ -164,6 +164,9 @@ def extract_rtmpose_pose_features_chunked(
 
 @app.local_entrypoint()
 def main(
+    windows_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
+    output_csv: str = f"{DATASET_ROOT}/pose_windows_rtmpose.csv",
+    output_dir: str = f"{DATASET_ROOT}/rtmpose_features",
     max_videos: int | None = None,
     video_start: int = 0,
     video_count: int | None = None,
@@ -171,6 +174,9 @@ def main(
 ) -> None:
     if chunk_size is None:
         extract_rtmpose_pose_features.remote(
+            windows_csv=windows_csv,
+            output_csv=output_csv,
+            output_dir=output_dir,
             max_videos=max_videos,
             video_start=video_start,
             video_count=video_count,
@@ -178,6 +184,9 @@ def main(
         return
 
     call = extract_rtmpose_pose_features_chunked.spawn(
+        windows_csv=windows_csv,
+        output_csv=output_csv,
+        output_dir=output_dir,
         video_start=video_start,
         video_count=max_videos or video_count,
         chunk_size=chunk_size,

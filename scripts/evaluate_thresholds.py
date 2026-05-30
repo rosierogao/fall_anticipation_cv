@@ -38,8 +38,10 @@ def parse_args() -> argparse.Namespace:
             "pose",
             "vjepa",
             "vjepa-baseline",
+            "vjepa-baseline-real-oops",
             "vjepa-lambda-0p1",
             "vjepa-lambda-0p2",
+            "vjepa-lambda-0p2-real-oops",
             "vjepa-lambda-0p5",
             "fusion",
         ],
@@ -389,6 +391,14 @@ def evaluate_model(
             device=device,
         )
         display_name = "vjepa_baseline"
+    elif name == "vjepa-baseline-real-oops":
+        val_labels, val_probs, test_labels, test_probs = predict_vjepa(
+            data_root / "vjepa_windows_real_oops.csv",
+            data_root / "outputs/vjepa_baseline_real_oops.pt",
+            batch_size=batch_size,
+            device=device,
+        )
+        display_name = "vjepa_baseline_real_oops"
     elif name == "vjepa-lambda-0p1":
         val_labels, val_probs, test_labels, test_probs = predict_vjepa(
             data_root / "vjepa_windows.csv",
@@ -405,6 +415,14 @@ def evaluate_model(
             device=device,
         )
         display_name = "vjepa_latent_predictive_lambda_0p2"
+    elif name == "vjepa-lambda-0p2-real-oops":
+        val_labels, val_probs, test_labels, test_probs = predict_vjepa(
+            data_root / "vjepa_windows_real_oops.csv",
+            data_root / "outputs/vjepa_latent_predictive_real_oops.pt",
+            batch_size=batch_size,
+            device=device,
+        )
+        display_name = "vjepa_latent_predictive_lambda_0p2_real_oops"
     elif name == "vjepa-lambda-0p5":
         val_labels, val_probs, test_labels, test_probs = predict_vjepa(
             data_root / "vjepa_windows.csv",

@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import modal
 
@@ -12,7 +11,7 @@ PACKAGE_REMOTE_ROOT = "/root/project"
 LOCAL_PACKAGE_DIR = Path(__file__).parent / "src" / "fall_anticipation_cv"
 LOCAL_SCRIPTS_DIR = Path(__file__).parent / "scripts"
 
-app = modal.App(f"{APP_NAME}-threshold-tuning")
+app = modal.App(f"{APP_NAME}-pose-by-dataset")
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=False)
 
 image = (
@@ -23,7 +22,6 @@ image = (
         "pandas<3.0",
         "scikit-learn",
         "torch==2.3.1",
-        "tqdm",
     )
     .add_local_dir(
         LOCAL_PACKAGE_DIR,
@@ -41,32 +39,24 @@ image = (
     gpu="H100",
     timeout=60 * 60,
 )
-def tune_thresholds(
-    output: str = f"{DATASET_ROOT}/outputs/threshold_tuning_metrics.json",
-    target_recall: float = 0.75,
-    models: Optional[list[str]] = None,
+def evaluate_by_dataset(
+    output: str = (
+        f"{DATASET_ROOT}/outputs/pose_transformer_by_dataset_metrics.json"
+    ),
+    threshold: float = 0.5,
 ) -> str:
     import subprocess
     import sys
 
-    if models is None:
-        models = [
-            "pose",
-            "vjepa-lambda-0p2",
-            "fusion",
-        ]
-
     cmd = [
         sys.executable,
-        f"{PACKAGE_REMOTE_ROOT}/scripts/evaluate_thresholds.py",
-        "--models",
-        *models,
+        f"{PACKAGE_REMOTE_ROOT}/scripts/evaluate_pose_by_dataset.py",
         "--data-root",
         DATASET_ROOT,
         "--output",
         output,
-        "--target-recall",
-        str(target_recall),
+        "--threshold",
+        str(threshold),
     ]
     print("Running:", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True)
@@ -76,13 +66,9 @@ def tune_thresholds(
 
 @app.local_entrypoint()
 def main(
-    target_recall: float = 0.75,
-    output: str = f"{DATASET_ROOT}/outputs/fusion_comparison_threshold_tuning_metrics.json",
-    models: str = "pose,vjepa-lambda-0p2,fusion",
+    output: str = (
+        f"{DATASET_ROOT}/outputs/pose_transformer_by_dataset_metrics.json"
+    ),
+    threshold: float = 0.5,
 ) -> None:
-    model_names = [model.strip() for model in models.split(",") if model.strip()]
-    tune_thresholds.remote(
-        output=output,
-        target_recall=target_recall,
-        models=model_names,
-    )
+    evaluate_by_dataset.remote(output=output, threshold=threshold)

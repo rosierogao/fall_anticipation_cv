@@ -48,7 +48,7 @@ def _run_script(cmd: list[str]) -> None:
 @app.function(
     image=image,
     volumes={DATA_ROOT: volume},
-    gpu="L4",
+    gpu="H100",
     timeout=60 * 60 * 12,
 )
 def extract_vjepa_latents(
@@ -99,6 +99,10 @@ def train_vjepa_predictive(
     batch_size: int = 32,
     model: str = "predictive",
     predictive_loss_weight: float = 0.2,
+    dropout: float = 0.35,
+    weight_decay: float = 3e-4,
+    lr_plateau_patience: int = 2,
+    lr_plateau_factor: float = 0.5,
 ) -> str:
     import sys
     from pathlib import Path
@@ -127,6 +131,14 @@ def train_vjepa_predictive(
             str(batch_size),
             "--predictive-loss-weight",
             str(predictive_loss_weight),
+            "--dropout",
+            str(dropout),
+            "--weight-decay",
+            str(weight_decay),
+            "--lr-plateau-patience",
+            str(lr_plateau_patience),
+            "--lr-plateau-factor",
+            str(lr_plateau_factor),
             "--num-workers",
             "0",
         ]
@@ -141,28 +153,52 @@ def main(
     epochs: int = 5,
     batch_size: int = 2,
     max_windows: int | None = None,
+    windows_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
+    output_csv: str = f"{DATASET_ROOT}/vjepa_windows.csv",
+    output_dir: str = f"{DATASET_ROOT}/vjepa_latents",
+    checkpoint: str | None = None,
+    metrics: str | None = None,
+    dropout: float = 0.35,
+    weight_decay: float = 3e-4,
+    lr_plateau_patience: int = 2,
+    lr_plateau_factor: float = 0.5,
 ) -> None:
     if action == "extract":
         call = extract_vjepa_latents.spawn(
+            windows_csv=windows_csv,
+            output_csv=output_csv,
+            output_dir=output_dir,
             batch_size=batch_size,
             max_windows=max_windows,
         )
         print(f"Spawned V-JEPA latent extraction: {call.object_id}", flush=True)
     elif action == "train":
         call = train_vjepa_predictive.spawn(
+            windows_csv=windows_csv,
+            checkpoint=checkpoint or f"{DATASET_ROOT}/outputs/vjepa_latent_predictive.pt",
+            metrics=metrics or f"{DATASET_ROOT}/outputs/vjepa_latent_predictive_metrics.json",
             epochs=epochs,
             batch_size=batch_size,
+            dropout=dropout,
+            weight_decay=weight_decay,
+            lr_plateau_patience=lr_plateau_patience,
+            lr_plateau_factor=lr_plateau_factor,
         )
         print(f"Spawned V-JEPA predictive training: {call.object_id}", flush=True)
     elif action == "train-baseline":
-        metrics = train_vjepa_predictive.remote(
-            checkpoint=f"{DATASET_ROOT}/outputs/vjepa_baseline.pt",
-            metrics=f"{DATASET_ROOT}/outputs/vjepa_baseline_metrics.json",
+        call = train_vjepa_predictive.spawn(
+            windows_csv=windows_csv,
+            checkpoint=checkpoint or f"{DATASET_ROOT}/outputs/vjepa_baseline.pt",
+            metrics=metrics or f"{DATASET_ROOT}/outputs/vjepa_baseline_metrics.json",
             epochs=epochs,
             batch_size=batch_size,
             model="baseline",
+            dropout=dropout,
+            weight_decay=weight_decay,
+            lr_plateau_patience=lr_plateau_patience,
+            lr_plateau_factor=lr_plateau_factor,
         )
-        print(f"Completed V-JEPA baseline training: {metrics}", flush=True)
+        print(f"Spawned V-JEPA baseline training: {call.object_id}", flush=True)
     elif action == "train-predictive-sweep":
         for weight in (0.1, 0.5):
             metrics = train_vjepa_predictive.remote(
@@ -178,6 +214,10 @@ def main(
                 batch_size=batch_size,
                 model="predictive",
                 predictive_loss_weight=weight,
+                dropout=dropout,
+                weight_decay=weight_decay,
+                lr_plateau_patience=lr_plateau_patience,
+                lr_plateau_factor=lr_plateau_factor,
             )
             print(
                 f"Completed V-JEPA predictive lambda={weight}: {metrics}",
@@ -192,6 +232,10 @@ def main(
             windows_csv=output_csv,
             epochs=epochs,
             batch_size=32,
+            dropout=dropout,
+            weight_decay=weight_decay,
+            lr_plateau_patience=lr_plateau_patience,
+            lr_plateau_factor=lr_plateau_factor,
         )
         print(f"Spawned V-JEPA predictive training: {call.object_id}", flush=True)
     else:
