@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="620" viewBox="0 0 1180 620">
+<rect x="0" y="0" width="1180" height="620" rx="0" fill="white" stroke="none" stroke-width="1" />
+<text x="42" y="48" font-family="Arial, sans-serif" font-size="28" font-weight="700" text-anchor="start" fill="#8C1515">Baseline Model Comparison</text>
+<text x="42" y="75" font-family="Arial, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#666666">Staged test set; thresholds tuned on validation to maximize positive-class F2</text>
+<line x1="90" y1="470" x2="610" y2="470" stroke="#D9D9D9" stroke-width="1" />
+<text x="80" y="475" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#666666">0.0</text>
+<line x1="90" y1="402.0" x2="610" y2="402.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="80" y="407.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#666666">0.2</text>
+<line x1="90" y1="334.0" x2="610" y2="334.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="80" y="339.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#666666">0.4</text>
+<line x1="90" y1="266.0" x2="610" y2="266.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="80" y="271.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#666666">0.6</text>
+<line x1="90" y1="198.0" x2="610" y2="198.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="80" y="203.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#666666">0.8</text>
+<line x1="90" y1="130.0" x2="610" y2="130.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="80" y="135.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#666666">1.0</text>
+<rect x="114.76190476190477" y="405.1075268817204" width="41.26984126984127" height="64.89247311827957" rx="0" fill="#2F6B9A" stroke="none" stroke-width="1" />
+<text x="135.39682539682542" y="399.1075268817204" font-family="Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#2E2D29">0.19</text>
+<rect x="164.2857142857143" y="189.30232558139534" width="41.26984126984127" height="280.69767441860466" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="184.92063492063494" y="183.30232558139534" font-family="Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#2E2D29">0.83</text>
+<rect x="213.80952380952382" y="364.585152838428" width="41.26984126984127" height="105.41484716157206" rx="0" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="234.44444444444446" y="358.585152838428" font-family="Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#2E2D29">0.31</text>
+<text x="176.66666666666669" y="498" font-family="Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#2E2D29">CNN</text>
+<text x="176.66666666666669" y="513" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">+ Transformer</text>
+<rect x="288.09523809523813" y="398.1443298969072" width="41.26984126984127" height="71.85567010309278" rx="0" fill="#2F6B9A" stroke="none" stroke-width="1" />
+<text x="308.7301587301588" y="392.1443298969072" font-family="Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#2E2D29">0.21</text>
+<rect x="337.61904761904765" y="145.81395348837208" width="41.26984126984127" height="324.1860465116279" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="358.2539682539683" y="139.81395348837208" font-family="Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#2E2D29">0.95</text>
+<rect x="387.14285714285717" y="352.36286919831224" width="41.26984126984127" height="117.63713080168776" rx="0" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="407.7777777777778" y="346.36286919831224" font-family="Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#2E2D29">0.35</text>
+<text x="350.00000000000006" y="498" font-family="Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#2E2D29">Pose Transformer</text>
+<rect x="461.42857142857144" y="314.8322147651007" width="41.26984126984127" height="155.16778523489933" rx="0" fill="#2F6B9A" stroke="none" stroke-width="1" />
+<text x="482.0634920634921" y="308.8322147651007" font-family="Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#2E2D29">0.46</text>
+<rect x="510.95238095238096" y="201.16279069767444" width="41.26984126984127" height="268.83720930232556" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="531.5873015873016" y="195.16279069767444" font-family="Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#2E2D29">0.79</text>
+<rect x="560.4761904761905" y="273.23404255319144" width="41.26984126984127" height="196.76595744680853" rx="0" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="581.1111111111111" y="267.23404255319144" font-family="Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#2E2D29">0.58</text>
+<text x="523.3333333333334" y="498" font-family="Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#2E2D29">V-JEPA Predictive</text>
+<line x1="90" y1="470" x2="610" y2="470" stroke="#2E2D29" stroke-width="1.2" />
+<text x="350.0" y="542" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#666666">Model</text>
+<rect x="90" y="572" width="16" height="16" rx="0" fill="#2F6B9A" stroke="none" stroke-width="1" />
+<text x="114" y="585" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">Precision</text>
+<rect x="210" y="572" width="16" height="16" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="234" y="585" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">Recall</text>
+<rect x="330" y="572" width="16" height="16" rx="0" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="354" y="585" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">F1</text>
+<text x="665" y="104" font-family="Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#2E2D29">Recall-prioritized threshold tuning</text>
+<rect x="665" y="126" width="480" height="34" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="749.0" y="149" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">Model</text>
+<text x="872.0" y="149" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">Thresh.</text>
+<text x="950.0" y="149" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">Prec.</text>
+<text x="1028.0" y="149" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">Recall</text>
+<text x="1106.0" y="149" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">F1</text>
+<rect x="665" y="160" width="480" height="62" rx="0" fill="white" stroke="#E0E0E0" stroke-width="1" />
+<text x="749.0" y="198" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">CNN + Transformer</text>
+<text x="872.0" y="198" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.340</text>
+<text x="950.0" y="198" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.191</text>
+<text x="1028.0" y="198" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.826</text>
+<text x="1106.0" y="198" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.310</text>
+<rect x="665" y="222" width="480" height="62" rx="0" fill="#F7F7F7" stroke="#E0E0E0" stroke-width="1" />
+<text x="749.0" y="260" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">Pose Transformer</text>
+<text x="872.0" y="260" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.389</text>
+<text x="950.0" y="260" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.211</text>
+<text x="1028.0" y="260" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.953</text>
+<text x="1106.0" y="260" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.346</text>
+<rect x="665" y="284" width="480" height="62" rx="0" fill="white" stroke="#E0E0E0" stroke-width="1" />
+<text x="749.0" y="322" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">V-JEPA Predictive</text>
+<text x="872.0" y="322" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.430</text>
+<text x="950.0" y="322" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.456</text>
+<text x="1028.0" y="322" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.791</text>
+<text x="1106.0" y="322" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#2E2D29">0.579</text>
+<text x="665" y="376" font-family="Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#2E2D29">Default threshold 0.50</text>
+<rect x="665" y="396" width="480" height="34" rx="0" fill="#666666" stroke="none" stroke-width="1" />
+<text x="749.0" y="419" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">Model</text>
+<text x="872.0" y="419" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">Thresh.</text>
+<text x="950.0" y="419" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">Prec.</text>
+<text x="1028.0" y="419" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">Recall</text>
+<text x="1106.0" y="419" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">F1</text>
+<rect x="665" y="430" width="480" height="48" rx="0" fill="white" stroke="#E0E0E0" stroke-width="1" />
+<text x="749.0" y="460" font-family="Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#2E2D29">CNN + Transformer</text>
+<text x="872.0" y="460" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.50</text>
+<text x="950.0" y="460" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.217</text>
+<text x="1028.0" y="460" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.116</text>
+<text x="1106.0" y="460" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.152</text>
+<rect x="665" y="478" width="480" height="48" rx="0" fill="#F7F7F7" stroke="#E0E0E0" stroke-width="1" />
+<text x="749.0" y="508" font-family="Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#2E2D29">Pose Transformer</text>
+<text x="872.0" y="508" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.50</text>
+<text x="950.0" y="508" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.255</text>
+<text x="1028.0" y="508" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.698</text>
+<text x="1106.0" y="508" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.374</text>
+<rect x="665" y="526" width="480" height="48" rx="0" fill="white" stroke="#E0E0E0" stroke-width="1" />
+<text x="749.0" y="556" font-family="Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#2E2D29">V-JEPA Predictive</text>
+<text x="872.0" y="556" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.50</text>
+<text x="950.0" y="556" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.455</text>
+<text x="1028.0" y="556" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.756</text>
+<text x="1106.0" y="556" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">0.568</text>
+<rect x="42" y="570" width="1088" height="32" rx="4" fill="#F7F7F7" stroke="#E5E5E5" stroke-width="1" />
+<text x="58" y="591" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" fill="#666666">Note: this chart uses staged-set CNN/Pose/V-JEPA metrics; expanded real+OOPs CNN/Pose metrics were not available locally.</text>
+</svg>

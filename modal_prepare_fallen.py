@@ -10,7 +10,7 @@ VOLUME_NAME = "final_project_dataset"
 PACKAGE_REMOTE_ROOT = "/root/project"
 LOCAL_PACKAGE_DIR = Path(__file__).parent / "src" / "fall_anticipation_cv"
 
-app = modal.App(f"{APP_NAME}-prepare")
+app = modal.App(f"{APP_NAME}-prepare-fallen")
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=False)
 
 image = (
@@ -34,13 +34,12 @@ def _counts(series) -> dict:
     volumes={DATA_ROOT: volume},
     timeout=60 * 60 * 2,
 )
-def prepare_windows(
-    output_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
-    include_caucafall: bool = False,
-    include_oops: bool = False,
-    oops_negative_ratio: float = 3.0,
+def prepare_fallen_windows(
+    output_csv: str = f"{DATASET_ROOT}/windows_fallen_state_gmd_le2i_horizon2s.csv",
+    horizon_sec: float = 2.0,
     sample_seed: int = 42,
-    assign_splits: bool = False,
+    assign_splits: bool = True,
+    include_caucafall: bool = False,
 ) -> dict:
     import json
     from pathlib import Path
@@ -49,32 +48,23 @@ def prepare_windows(
         assign_group_splits,
         build_window_dataframe,
         load_all_labels,
-        sample_oops_negative_windows,
         validate_windows,
     )
 
     labels = load_all_labels(
         DATA_ROOT,
+        include_le2i=True,
         include_caucafall=include_caucafall,
-        include_oops=include_oops,
+        include_oops=False,
+        le2i_event_label="fallen",
     )
     existing_labels = labels[labels["video_exists"]].copy()
-    windows = build_window_dataframe(labels)
-    raw_window_count = int(len(windows))
-    raw_windows_by_dataset_and_class = {
-        str(dataset): {str(label): int(count) for label, count in counts.items()}
-        for dataset, counts in windows.groupby("dataset")["y"]
-        .value_counts()
-        .unstack(fill_value=0)
-        .to_dict(orient="index")
-        .items()
-    }
-    if include_oops:
-        windows = sample_oops_negative_windows(
-            windows,
-            negative_to_positive_ratio=oops_negative_ratio,
-            random_state=sample_seed,
-        )
+    windows = build_window_dataframe(
+        labels,
+        horizon_sec=horizon_sec,
+        positive_label="fallen",
+        exclude_labels={"fall"},
+    )
     if assign_splits:
         windows = assign_group_splits(windows, random_state=sample_seed)
     validate_windows(windows)
@@ -86,17 +76,26 @@ def prepare_windows(
 
     summary = {
         "output_csv": output_csv,
-        "include_caucafall": include_caucafall,
-        "include_oops": include_oops,
-        "oops_negative_ratio": oops_negative_ratio,
+        "task": "fallen_state_prediction",
+        "positive_label": "fallen",
+        "le2i_positive_event": "fall_end_frame",
+        "excluded_labels": ["fall"],
+        "horizon_sec": horizon_sec,
         "sample_seed": sample_seed,
         "assign_splits": assign_splits,
+        "include_caucafall": include_caucafall,
         "num_label_rows": int(len(labels)),
         "num_existing_label_rows": int(len(existing_labels)),
         "label_rows_by_dataset": _counts(labels["dataset"]),
         "existing_label_rows_by_dataset": _counts(existing_labels["dataset"]),
-        "num_windows_before_sampling": raw_window_count,
-        "windows_by_dataset_and_class_before_sampling": raw_windows_by_dataset_and_class,
+        "label_rows_by_dataset_and_label": {
+            str(dataset): {str(label): int(count) for label, count in counts.items()}
+            for dataset, counts in labels.groupby("dataset")["label_name"]
+            .value_counts()
+            .unstack(fill_value=0)
+            .to_dict(orient="index")
+            .items()
+        },
         "num_windows": int(len(windows)),
         "windows_by_class": _counts(windows["y"]),
         "windows_by_dataset": _counts(windows["dataset"]),
@@ -134,24 +133,23 @@ def prepare_windows(
             .to_dict(orient="index")
             .items()
         }
+
     print(json.dumps(summary, indent=2))
     return summary
 
 
 @app.local_entrypoint()
 def main(
-    output_csv: str = f"{DATASET_ROOT}/windows_gmdcsa24.csv",
-    include_caucafall: bool = False,
-    include_oops: bool = False,
-    oops_negative_ratio: float = 3.0,
+    output_csv: str = f"{DATASET_ROOT}/windows_fallen_state_gmd_le2i_horizon2s.csv",
+    horizon_sec: float = 2.0,
     sample_seed: int = 42,
-    assign_splits: bool = False,
+    assign_splits: bool = True,
+    include_caucafall: bool = False,
 ) -> None:
-    prepare_windows.remote(
+    prepare_fallen_windows.remote(
         output_csv=output_csv,
-        include_caucafall=include_caucafall,
-        include_oops=include_oops,
-        oops_negative_ratio=oops_negative_ratio,
+        horizon_sec=horizon_sec,
         sample_seed=sample_seed,
         assign_splits=assign_splits,
+        include_caucafall=include_caucafall,
     )

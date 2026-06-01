@@ -189,6 +189,109 @@ def load_oops_labels(data_root: str | Path) -> pd.DataFrame:
     return labels
 
 
+def _caucafall_action_filename(label_path: str) -> str:
+    stem = Path(str(label_path).strip()).stem
+    # Label paths encode subject at the end, e.g. FallForwardS1.
+    import re
+
+    action = re.sub(r"S\d+$", "", stem)
+    explicit_names = {
+        "FallBackwards": "Fall backwards",
+        "FallForward": "Fall forward",
+        "FallLeft": "Fall left",
+        "FallRight": "Fall right",
+        "FallSitting": "Fall sitting",
+        "Hop": "Hop",
+        "Kneel": "Kneel",
+        "Pickupobject": "Pick up object",
+        "PickUpObject": "Pick up object",
+        "SitDown": "Sit down",
+        "Walk": "Walk",
+    }
+    if action in explicit_names:
+        return explicit_names[action]
+
+    spaced = re.sub(r"(?<!^)(?=[A-Z])", " ", action).strip()
+    return spaced or action
+
+
+def resolve_caucafall_video_path(label_path: str, data_root: str | Path) -> str | None:
+    data_root = dataset_root(data_root)
+    caucafall_root = first_existing_path(
+        [
+            data_root / "CAUCAFall" / "CAUCAFall" / "videos",
+            data_root / "CAUCAFall" / "videos",
+            data_root / "caucafall" / "videos",
+        ]
+    )
+    if not caucafall_root.exists():
+        return None
+
+    subject_match = None
+    import re
+
+    path_stem = Path(str(label_path).strip()).stem
+    match = re.search(r"S(\d+)$", path_stem)
+    if match is not None:
+        subject_match = match.group(1)
+
+    subject_dirs = (
+        [caucafall_root / f"Subject.{subject_match}"]
+        if subject_match is not None
+        else sorted(caucafall_root.glob("Subject.*"))
+    )
+    action_filename = _caucafall_action_filename(label_path)
+
+    for subject_dir in subject_dirs:
+        if not subject_dir.exists():
+            continue
+        for suffix in VIDEO_EXTENSIONS:
+            candidate = subject_dir / f"{action_filename}{suffix}"
+            if candidate.exists():
+                return str(candidate)
+
+        lower_action = action_filename.lower().replace(" ", "")
+        matches = sorted(
+            path
+            for path in subject_dir.iterdir()
+            if path.suffix.lower() in VIDEO_EXTENSIONS
+            and path.stem.lower().replace(" ", "") == lower_action
+        )
+        if matches:
+            return str(matches[0])
+
+    return None
+
+
+def load_caucafall_labels(data_root: str | Path) -> pd.DataFrame:
+    data_root = dataset_root(data_root)
+    labels_dir = data_root / "labels"
+    csv_path = first_existing_path(
+        [
+            labels_dir / "caucafall.csv",
+            labels_dir / "CAUCAFall.csv",
+            labels_dir / "CAUCAFALL.csv",
+        ]
+    )
+    if not csv_path.exists():
+        return pd.DataFrame()
+
+    labels = pd.read_csv(csv_path)
+    id_to_label = load_label_map(labels_dir)
+    labels["label_name"] = labels["label"].map(id_to_label).apply(normalize_label_name)
+    labels["dataset"] = "caucafall"
+    labels["video_path"] = labels["path"].apply(
+        lambda path: resolve_caucafall_video_path(path, data_root)
+    )
+    labels["video_exists"] = labels["video_path"].apply(
+        lambda path: isinstance(path, str) and os.path.exists(path)
+    )
+    labels["split_group"] = labels["subject"].apply(
+        lambda subject: f"caucafall:{subject}"
+    )
+    return labels
+
+
 def parse_le2i_annotation(annotation_path: str | Path) -> tuple[int, int] | None:
     lines = [
         line.strip()
@@ -218,7 +321,10 @@ def resolve_le2i_video_path(annotation_path: str | Path) -> str | None:
     return str(matches[0]) if matches else None
 
 
-def load_le2i_labels(data_root: str | Path) -> pd.DataFrame:
+def load_le2i_labels(
+    data_root: str | Path,
+    event_label: str = POSITIVE_LABEL,
+) -> pd.DataFrame:
     le2i_root = dataset_root(data_root) / "le2i"
     if not le2i_root.exists():
         return pd.DataFrame()
@@ -236,15 +342,19 @@ def load_le2i_labels(data_root: str | Path) -> pd.DataFrame:
         fps = video_info[0] if video_info is not None else DEFAULT_LE2I_FPS
         subset = annotation_path.parent.parent.name
         video_stem = annotation_path.stem
+        event_label_name = normalize_label_name(event_label)
+        event_start_frame = (
+            fall_end_frame if event_label_name == "fallen" else fall_start_frame
+        )
 
         records.append(
             {
                 "path": f"{subset}/{video_stem}",
-                "label": 1,
-                "label_name": POSITIVE_LABEL,
-                "start": fall_start_frame / fps,
+                "label": 2 if event_label_name == "fallen" else 1,
+                "label_name": event_label_name,
+                "start": event_start_frame / fps,
                 "end": fall_end_frame / fps,
-                "start_frame": fall_start_frame,
+                "start_frame": event_start_frame,
                 "end_frame": fall_end_frame,
                 "original_fps": fps,
                 "subject": f"le2i:{subset}:{video_stem}",
@@ -269,13 +379,19 @@ def load_le2i_labels(data_root: str | Path) -> pd.DataFrame:
 def load_all_labels(
     data_root: str | Path,
     include_le2i: bool = True,
+    include_caucafall: bool = False,
     include_oops: bool = False,
+    le2i_event_label: str = POSITIVE_LABEL,
 ) -> pd.DataFrame:
     label_frames = [load_gmd_labels(data_root)]
     if include_le2i:
-        le2i_labels = load_le2i_labels(data_root)
+        le2i_labels = load_le2i_labels(data_root, event_label=le2i_event_label)
         if not le2i_labels.empty:
             label_frames.append(le2i_labels)
+    if include_caucafall:
+        caucafall_labels = load_caucafall_labels(data_root)
+        if not caucafall_labels.empty:
+            label_frames.append(caucafall_labels)
     if include_oops:
         oops_labels = load_oops_labels(data_root)
         if not oops_labels.empty:
@@ -296,13 +412,23 @@ def get_video_info(video_path: str) -> tuple[float, int] | None:
     return fps, n_frames
 
 
-def build_windows_for_row(row: pd.Series) -> list[dict]:
+def build_windows_for_row(
+    row: pd.Series,
+    horizon_sec: float = HORIZON_SEC,
+    positive_label: str = POSITIVE_LABEL,
+    negative_labels: set[str] | None = None,
+    exclude_labels: set[str] | None = None,
+) -> list[dict]:
+    k_frames = int(horizon_sec * TARGET_FPS)
+    positive_label = normalize_label_name(positive_label)
+    negative_labels = NEGATIVE_LABELS if negative_labels is None else negative_labels
+    exclude_labels = EXCLUDE_LABELS if exclude_labels is None else exclude_labels
     label_name = str(row.get("label_name", "")).strip().lower()
 
-    if label_name in {"", "nan"} or label_name in EXCLUDE_LABELS:
+    if label_name in {"", "nan"} or label_name in exclude_labels:
         return []
 
-    if label_name != POSITIVE_LABEL and label_name not in NEGATIVE_LABELS:
+    if label_name != positive_label and label_name not in negative_labels:
         return []
 
     video_path = row.get("video_path", None)
@@ -317,11 +443,11 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
     sample_interval = max(1.0, original_fps / TARGET_FPS)
     n_sampled_frames = int(np.ceil(n_original_frames / sample_interval))
 
-    if n_sampled_frames <= OBS_LEN + K_FRAMES:
+    if n_sampled_frames <= OBS_LEN + k_frames:
         return []
 
     action_start_sampled = None
-    if label_name == POSITIVE_LABEL:
+    if label_name == positive_label:
         if "start_frame" in row and not pd.isna(row["start_frame"]):
             action_start_original = int(row["start_frame"])
         else:
@@ -341,15 +467,15 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
                 return []
 
     samples = []
-    for target_frame in range(OBS_LEN, n_sampled_frames - K_FRAMES, STRIDE):
-        if label_name == POSITIVE_LABEL:
-            y = int(target_frame < action_start_sampled <= target_frame + K_FRAMES)
+    for target_frame in range(OBS_LEN, n_sampled_frames - k_frames, STRIDE):
+        if label_name == positive_label:
+            y = int(target_frame < action_start_sampled <= target_frame + k_frames)
             if target_frame >= action_start_sampled:
                 continue
         else:
             if (
                 action_start_sampled is not None
-                and target_frame + K_FRAMES > action_start_sampled
+                and target_frame + k_frames > action_start_sampled
             ):
                 continue
             y = 0
@@ -366,7 +492,7 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
                 "window_end": target_frame,
                 "target_frame": target_frame,
                 "obs_len": OBS_LEN,
-                "k_frames": K_FRAMES,
+                "k_frames": k_frames,
                 "target_fps": TARGET_FPS,
                 "sample_interval": sample_interval,
                 "y": y,
@@ -379,10 +505,22 @@ def build_windows_for_row(row: pd.Series) -> list[dict]:
     return samples
 
 
-def build_window_dataframe(labels: pd.DataFrame) -> pd.DataFrame:
+def build_window_dataframe(
+    labels: pd.DataFrame,
+    horizon_sec: float = HORIZON_SEC,
+    positive_label: str = POSITIVE_LABEL,
+    exclude_labels: set[str] | None = None,
+) -> pd.DataFrame:
     all_samples = []
     for _, row in labels.iterrows():
-        all_samples.extend(build_windows_for_row(row))
+        all_samples.extend(
+            build_windows_for_row(
+                row,
+                horizon_sec=horizon_sec,
+                positive_label=positive_label,
+                exclude_labels=exclude_labels,
+            )
+        )
 
     columns = [
         "video_path",

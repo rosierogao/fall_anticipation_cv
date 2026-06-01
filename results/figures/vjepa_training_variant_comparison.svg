@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="600" viewBox="0 0 1100 600">
+<rect x="0" y="0" width="1100" height="600" fill="white" stroke="none" stroke-width="1" />
+<text x="40" y="45" font-family="Arial, sans-serif" font-size="28" font-weight="700" text-anchor="start" fill="#8C1515">V-JEPA Training Variant Comparison</text>
+<text x="40" y="72" font-family="Arial, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#666666">Original training vs regularized training on expanded real + OOPs test set</text>
+<text x="40" y="94" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#666666">Regularized = dropout 0.35, weight decay 3e-4, ReduceLROnPlateau scheduler</text>
+<line x1="110" y1="460" x2="1050" y2="460" stroke="#D9D9D9" stroke-width="1" />
+<text x="98" y="465" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="end" fill="#666666">0.0</text>
+<line x1="110" y1="387.0" x2="1050" y2="387.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="98" y="392.0" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="end" fill="#666666">0.2</text>
+<line x1="110" y1="314.0" x2="1050" y2="314.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="98" y="319.0" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="end" fill="#666666">0.4</text>
+<line x1="110" y1="241.0" x2="1050" y2="241.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="98" y="246.0" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="end" fill="#666666">0.6</text>
+<line x1="110" y1="168.0" x2="1050" y2="168.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="98" y="173.0" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="end" fill="#666666">0.8</text>
+<line x1="110" y1="95.0" x2="1050" y2="95.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="98" y="100.0" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="end" fill="#666666">1.0</text>
+<rect x="190.11363636363637" y="208.72201492537312" width="53.40909090909091" height="251.27798507462688" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="216.8181818181818" y="200.72201492537312" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">0.69</text>
+<rect x="264.8863636363636" y="228.97941680960548" width="53.40909090909091" height="231.02058319039452" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="291.59090909090907" y="220.97941680960548" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">0.63</text>
+<text x="227.5" y="492" font-family="Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#2E2D29">Baseline</text>
+<text x="227.5" y="510" font-family="Arial, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#2E2D29">Original</text>
+<text x="227.5" y="538" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#666666">original training</text>
+<rect x="425.1136363636364" y="222.34141791044777" width="53.40909090909091" height="237.65858208955225" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="451.8181818181818" y="214.34141791044777" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">0.65</text>
+<rect x="499.8863636363636" y="234.53982300884957" width="53.40909090909091" height="225.46017699115043" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="526.5909090909091" y="226.53982300884957" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">0.62</text>
+<text x="462.5" y="492" font-family="Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#2E2D29">Baseline</text>
+<text x="462.5" y="510" font-family="Arial, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#2E2D29">Regularized</text>
+<text x="462.5" y="538" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#666666">dropout 0.35 + weight decay</text>
+<rect x="660.1136363636364" y="172.63059701492537" width="53.40909090909091" height="287.3694029850746" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="686.8181818181819" y="164.63059701492537" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">0.79</text>
+<rect x="734.8863636363636" y="217.62391817466562" width="53.40909090909091" height="242.37608182533438" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="761.5909090909091" y="209.62391817466562" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">0.66</text>
+<text x="697.5" y="492" font-family="Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#2E2D29">Predictive</text>
+<text x="697.5" y="510" font-family="Arial, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#2E2D29">Original</text>
+<text x="697.5" y="538" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#666666">original training</text>
+<rect x="895.1136363636364" y="192.37873134328356" width="53.40909090909091" height="267.62126865671644" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="921.8181818181819" y="184.37873134328356" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">0.73</text>
+<rect x="969.8863636363636" y="223.6820428336079" width="53.40909090909091" height="236.3179571663921" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="996.5909090909091" y="215.6820428336079" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#2E2D29">0.65</text>
+<text x="932.5" y="492" font-family="Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#2E2D29">Predictive</text>
+<text x="932.5" y="510" font-family="Arial, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#2E2D29">Regularized</text>
+<text x="932.5" y="538" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#666666">dropout 0.35 + weight decay</text>
+<line x1="110" y1="460" x2="1050" y2="460" stroke="#2E2D29" stroke-width="1.2" />
+<text x="580.0" y="576" font-family="Arial, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#666666">Model / training variant</text>
+<rect x="800" y="44" width="18" height="18" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="828" y="58" font-family="Arial, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#2E2D29">Recall</text>
+<rect x="910" y="44" width="18" height="18" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="938" y="58" font-family="Arial, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#2E2D29">F1</text>
+</svg>

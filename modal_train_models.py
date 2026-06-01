@@ -241,6 +241,8 @@ def main(
     batch_size: int | None = None,
     resume: bool = True,
     windows_csv: str | None = None,
+    predictive_windows_csv: str | None = None,
+    feature_dir: str | None = None,
     checkpoint: str | None = None,
     metrics: str | None = None,
     num_workers: int = 4,
@@ -278,6 +280,10 @@ def main(
     elif model == "pose_predictive":
         call = train_pose_predictive.spawn(
             pose_windows_csv=windows_csv or f"{DATASET_ROOT}/pose_windows_rtmpose.csv",
+            windows_csv=predictive_windows_csv
+            or f"{DATASET_ROOT}/pose_predictive_windows_rtmpose.csv",
+            feature_dir=feature_dir
+            or f"{DATASET_ROOT}/rtmpose_features/pose_predictive_windows",
             epochs=epochs,
             batch_size=batch_size or 32,
             checkpoint=checkpoint or f"{DATASET_ROOT}/outputs/pose_seq2seq_predictive.pt",

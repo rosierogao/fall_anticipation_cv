@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="850" height="500" viewBox="0 0 850 500">
+<rect x="0" y="0" width="850" height="500" rx="0" fill="white" stroke="none" stroke-width="1" />
+<text x="40" y="45" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="start" fill="#8C1515">Train / Validation / Test Split</text>
+<text x="40" y="70" font-family="Arial, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#6B6B6B">Video/group-based split, shown as constructed windows</text>
+<line x1="100.0" y1="80" x2="100.0" y2="415" stroke="#D9D9D9" stroke-width="1" />
+<text x="100.0" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#6B6B6B">0</text>
+<line x1="194.61620469083155" y1="80" x2="194.61620469083155" y2="415" stroke="#D9D9D9" stroke-width="1" />
+<text x="194.61620469083155" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#6B6B6B">1,000</text>
+<line x1="289.2324093816631" y1="80" x2="289.2324093816631" y2="415" stroke="#D9D9D9" stroke-width="1" />
+<text x="289.2324093816631" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#6B6B6B">2,000</text>
+<line x1="383.8486140724947" y1="80" x2="383.8486140724947" y2="415" stroke="#D9D9D9" stroke-width="1" />
+<text x="383.8486140724947" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#6B6B6B">3,000</text>
+<line x1="478.4648187633262" y1="80" x2="478.4648187633262" y2="415" stroke="#D9D9D9" stroke-width="1" />
+<text x="478.4648187633262" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#6B6B6B">4,000</text>
+<line x1="573.0810234541577" y1="80" x2="573.0810234541577" y2="415" stroke="#D9D9D9" stroke-width="1" />
+<text x="573.0810234541577" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#6B6B6B">5,000</text>
+<line x1="667.6972281449894" y1="80" x2="667.6972281449894" y2="415" stroke="#D9D9D9" stroke-width="1" />
+<text x="667.6972281449894" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#6B6B6B">6,000</text>
+<line x1="762.3134328358209" y1="80" x2="762.3134328358209" y2="415" stroke="#D9D9D9" stroke-width="1" />
+<text x="762.3134328358209" y="440" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#6B6B6B">7,000</text>
+<text x="85" y="132.0" font-family="Arial, sans-serif" font-size="15" font-weight="700" text-anchor="end" fill="#2E2D29">Train</text>
+<rect x="100" y="100" width="423.8805970149254" height="54" rx="0" fill="#2F6B9A" stroke="none" stroke-width="1" />
+<rect x="523.8805970149253" y="100" width="286.1194029850746" height="54" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="311.94029850746267" y="132.0" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">4,480</text>
+<text x="666.9402985074627" y="132.0" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">3,024</text>
+<text x="820.0" y="132.0" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">7,504</text>
+<text x="85" y="231.0" font-family="Arial, sans-serif" font-size="15" font-weight="700" text-anchor="end" fill="#2E2D29">Val</text>
+<rect x="100" y="199" width="84.77611940298507" height="54" rx="0" fill="#2F6B9A" stroke="none" stroke-width="1" />
+<rect x="184.77611940298507" y="199" width="56.864339019189764" height="54" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="142.38805970149252" y="231.0" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">896</text>
+<text x="213.20828891257995" y="231.0" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">601</text>
+<text x="251.64045842217485" y="231.0" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">1,497</text>
+<text x="85" y="330.0" font-family="Arial, sans-serif" font-size="15" font-weight="700" text-anchor="end" fill="#2E2D29">Test</text>
+<rect x="100" y="298" width="139.93736673773986" height="54" rx="0" fill="#2F6B9A" stroke="none" stroke-width="1" />
+<rect x="239.93736673773986" y="298" width="64.24440298507463" height="54" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="169.96868336886993" y="330.0" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">1,479</text>
+<text x="272.0595682302772" y="330.0" font-family="Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">679</text>
+<text x="314.18176972281447" y="330.0" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">2,158</text>
+<rect x="100" y="445" width="18" height="18" rx="0" fill="#2F6B9A" stroke="none" stroke-width="1" />
+<text x="126" y="459" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">Negative</text>
+<rect x="225" y="445" width="18" height="18" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="251" y="459" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">Positive</text>
+</svg>

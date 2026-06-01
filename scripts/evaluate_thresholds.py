@@ -95,6 +95,7 @@ def tune_thresholds(
     target_recall: float,
 ) -> dict:
     best_f2 = None
+    best_balanced_accuracy = None
     best_target = None
 
     for threshold in candidate_thresholds(probs):
@@ -103,6 +104,11 @@ def tune_thresholds(
         recall = metrics["positive_recall"]
         f1 = metrics["positive_f1"]
         f2 = f_beta(precision, recall, beta=2.0)
+        confusion_matrix = metrics["confusion_matrix"]
+        tn = confusion_matrix["true_negative"]
+        fp = confusion_matrix["false_positive"]
+        specificity = tn / (tn + fp) if (tn + fp) else 0.0
+        balanced_accuracy = (recall + specificity) / 2.0
         candidate = {
             "threshold": float(threshold),
             "precision": float(precision),
@@ -110,13 +116,25 @@ def tune_thresholds(
             "f1": float(f1),
             "f2": float(f2),
             "accuracy": float(metrics["accuracy"]),
-            "confusion_matrix": metrics["confusion_matrix"],
+            "specificity": float(specificity),
+            "balanced_accuracy": float(balanced_accuracy),
+            "confusion_matrix": confusion_matrix,
         }
         if best_f2 is None or (candidate["f2"], candidate["f1"]) > (
             best_f2["f2"],
             best_f2["f1"],
         ):
             best_f2 = candidate
+        if best_balanced_accuracy is None or (
+            candidate["balanced_accuracy"],
+            candidate["f2"],
+            candidate["f1"],
+        ) > (
+            best_balanced_accuracy["balanced_accuracy"],
+            best_balanced_accuracy["f2"],
+            best_balanced_accuracy["f1"],
+        ):
+            best_balanced_accuracy = candidate
         if recall >= target_recall and (
             best_target is None
             or (candidate["f1"], candidate["precision"], candidate["threshold"])
@@ -130,6 +148,7 @@ def tune_thresholds(
 
     return {
         "best_f2": best_f2,
+        "best_balanced_accuracy": best_balanced_accuracy,
         "best_with_target_recall": best_target,
         "target_recall": target_recall,
     }

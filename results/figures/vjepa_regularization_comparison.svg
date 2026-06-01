@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520">
+<rect x="0" y="0" width="920" height="520" rx="0" fill="white" stroke="none" stroke-width="1" />
+<text x="40" y="45" font-family="Arial, sans-serif" font-size="25" font-weight="700" text-anchor="start" fill="#8C1515">V-JEPA Regularization Comparison</text>
+<text x="40" y="70" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#6B6B6B">Higher dropout + weight decay reduced false positives but lowered recall</text>
+<line x1="125" y1="420" x2="880" y2="420" stroke="#D9D9D9" stroke-width="1" />
+<text x="115" y="424" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#6B6B6B">0.0</text>
+<line x1="125" y1="352.0" x2="880" y2="352.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="115" y="356.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#6B6B6B">0.2</text>
+<line x1="125" y1="284.0" x2="880" y2="284.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="115" y="288.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#6B6B6B">0.4</text>
+<line x1="125" y1="216.0" x2="880" y2="216.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="115" y="220.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#6B6B6B">0.6</text>
+<line x1="125" y1="148.0" x2="880" y2="148.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="115" y="152.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#6B6B6B">0.8</text>
+<line x1="125" y1="80.0" x2="880" y2="80.0" stroke="#D9D9D9" stroke-width="1" />
+<text x="115" y="84.0" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#6B6B6B">1.0</text>
+<rect x="190.16369047619048" y="185.93283582089552" width="44.94047619047619" height="234.06716417910448" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="212.63392857142858" y="179.93283582089552" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#2E2D29">0.69</text>
+<rect x="248.58630952380952" y="204.80274442538592" width="44.94047619047619" height="215.19725557461408" rx="0" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="271.0565476190476" y="198.80274442538592" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#2E2D29">0.63</text>
+<text x="219.375" y="448" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">Baseline</text>
+<text x="219.375" y="462" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">old</text>
+<rect x="378.9136904761905" y="198.6194029850746" width="44.94047619047619" height="221.38059701492537" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="401.38392857142856" y="192.6194029850746" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#2E2D29">0.65</text>
+<rect x="437.3363095238095" y="209.98230088495575" width="44.94047619047619" height="210.01769911504425" rx="0" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="459.8065476190476" y="203.98230088495575" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#2E2D29">0.62</text>
+<text x="408.125" y="448" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">Baseline</text>
+<text x="408.125" y="462" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">reg.</text>
+<rect x="567.6636904761905" y="152.3134328358209" width="44.94047619047619" height="267.6865671641791" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="590.1339285714286" y="146.3134328358209" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#2E2D29">0.79</text>
+<rect x="626.0863095238095" y="194.22501966955153" width="44.94047619047619" height="225.77498033044847" rx="0" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="648.5565476190476" y="188.22501966955153" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#2E2D29">0.66</text>
+<text x="596.875" y="448" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">Predictive</text>
+<text x="596.875" y="462" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">old</text>
+<rect x="756.4136904761905" y="170.7089552238806" width="44.94047619047619" height="249.2910447761194" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="778.8839285714286" y="164.7089552238806" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#2E2D29">0.73</text>
+<rect x="814.8363095238095" y="199.8682042833608" width="44.94047619047619" height="220.13179571663923" rx="0" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="837.3065476190476" y="193.8682042833608" font-family="Arial, sans-serif" font-size="11" font-weight="400" text-anchor="middle" fill="#2E2D29">0.65</text>
+<text x="785.625" y="448" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">Predictive</text>
+<text x="785.625" y="462" font-family="Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#2E2D29">reg.</text>
+<rect x="695" y="472" width="16" height="16" rx="0" fill="#8C1515" stroke="none" stroke-width="1" />
+<text x="718" y="485" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">Recall</text>
+<rect x="785" y="472" width="16" height="16" rx="0" fill="#23867A" stroke="none" stroke-width="1" />
+<text x="808" y="485" font-family="Arial, sans-serif" font-size="13" font-weight="400" text-anchor="start" fill="#2E2D29">F1</text>
+</svg>

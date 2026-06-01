@@ -1,0 +1,7 @@
+setting,model,input,threshold,accuracy,precision,recall,f1,tn,fp,fn,tp
+default_0.5,CNN + Transformer,Raw RGB frames,0.5,0.7494,0.2174,0.1163,0.1515,325,36,76,10
+default_0.5,Pose Transformer,RTMPose keypoints,0.5,0.5503,0.2553,0.6977,0.3738,186,175,26,60
+default_0.5,V-JEPA Predictive,V-JEPA latents,0.5,0.7843,0.4545,0.7558,0.5677,295,78,21,65
+tuned_val_f2,CNN + Transformer,Raw RGB frames,0.3405,0.2931,0.1909,0.8256,0.31,60,301,15,71
+tuned_val_f2,Pose Transformer,RTMPose keypoints,0.389,0.3065,0.2113,0.9535,0.346,55,306,4,82
+tuned_val_f2,V-JEPA Predictive,V-JEPA latents,0.43,0.7843,0.4564,0.7907,0.5787,292,81,18,68

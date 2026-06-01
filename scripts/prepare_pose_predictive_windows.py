@@ -34,6 +34,30 @@ def stable_video_id(video_path: str) -> str:
     return f"{stem}_{digest}"
 
 
+def resolve_video_pose_path(
+    row: pd.Series,
+    default_video_pose_dir: Path | None,
+) -> Path:
+    video_id = stable_video_id(str(row["video_path"]))
+    if default_video_pose_dir is not None:
+        candidate = default_video_pose_dir / f"{video_id}.npy"
+        if candidate.exists():
+            return candidate
+
+    pose_feature_path = row.get("pose_feature_path")
+    if isinstance(pose_feature_path, str) and pose_feature_path:
+        feature_path = Path(pose_feature_path)
+        inferred = feature_path.parent.parent / "video_pose" / f"{video_id}.npy"
+        if inferred.exists():
+            return inferred
+
+    return (
+        default_video_pose_dir / f"{video_id}.npy"
+        if default_video_pose_dir is not None
+        else Path(f"{video_id}.npy")
+    )
+
+
 def slice_pose(video_pose: np.ndarray, row: pd.Series, start: int, end: int) -> np.ndarray:
     indices = [
         int(round(sampled_idx * float(row["sample_interval"])))
@@ -61,7 +85,7 @@ def main() -> None:
     video_pose_dir = (
         Path(args.video_pose_dir)
         if args.video_pose_dir is not None
-        else output_dir.parent / "video_pose"
+        else None
     )
 
     windows = pd.read_csv(args.pose_windows_csv)
@@ -69,7 +93,7 @@ def main() -> None:
     skipped_missing_video_pose = 0
 
     for row_idx, row in windows.iterrows():
-        video_pose_path = video_pose_dir / f"{stable_video_id(str(row['video_path']))}.npy"
+        video_pose_path = resolve_video_pose_path(row, video_pose_dir)
         if not video_pose_path.exists():
             skipped_missing_video_pose += 1
             continue

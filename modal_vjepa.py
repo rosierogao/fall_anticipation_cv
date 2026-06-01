@@ -162,16 +162,23 @@ def main(
     weight_decay: float = 3e-4,
     lr_plateau_patience: int = 2,
     lr_plateau_factor: float = 0.5,
+    detach: bool = True,
 ) -> None:
     if action == "extract":
-        call = extract_vjepa_latents.spawn(
-            windows_csv=windows_csv,
-            output_csv=output_csv,
-            output_dir=output_dir,
-            batch_size=batch_size,
-            max_windows=max_windows,
-        )
-        print(f"Spawned V-JEPA latent extraction: {call.object_id}", flush=True)
+        call_args = {
+            "windows_csv": windows_csv,
+            "output_csv": output_csv,
+            "output_dir": output_dir,
+            "batch_size": batch_size,
+            "max_windows": max_windows,
+        }
+        if detach:
+            call = extract_vjepa_latents.spawn(**call_args)
+            print(f"Spawned V-JEPA latent extraction: {call.object_id}", flush=True)
+            return
+
+        output = extract_vjepa_latents.remote(**call_args)
+        print(f"Completed V-JEPA latent extraction: {output}", flush=True)
     elif action == "train":
         call = train_vjepa_predictive.spawn(
             windows_csv=windows_csv,

@@ -171,6 +171,7 @@ def main(
     video_start: int = 0,
     video_count: int | None = None,
     chunk_size: int | None = None,
+    detach: bool = True,
 ) -> None:
     if chunk_size is None:
         extract_rtmpose_pose_features.remote(
@@ -183,12 +184,18 @@ def main(
         )
         return
 
-    call = extract_rtmpose_pose_features_chunked.spawn(
-        windows_csv=windows_csv,
-        output_csv=output_csv,
-        output_dir=output_dir,
-        video_start=video_start,
-        video_count=max_videos or video_count,
-        chunk_size=chunk_size,
-    )
-    print(f"Spawned RTMPose chunked extraction: {call.object_id}", flush=True)
+    call_args = {
+        "windows_csv": windows_csv,
+        "output_csv": output_csv,
+        "output_dir": output_dir,
+        "video_start": video_start,
+        "video_count": max_videos or video_count,
+        "chunk_size": chunk_size,
+    }
+    if detach:
+        call = extract_rtmpose_pose_features_chunked.spawn(**call_args)
+        print(f"Spawned RTMPose chunked extraction: {call.object_id}", flush=True)
+        return
+
+    output = extract_rtmpose_pose_features_chunked.remote(**call_args)
+    print(f"Completed RTMPose chunked extraction: {output}", flush=True)
