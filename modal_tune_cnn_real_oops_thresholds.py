@@ -47,6 +47,10 @@ def tune_cnn_real_oops_thresholds(
     ),
     batch_size: int = 8,
     target_recall: float = 0.75,
+    windows_csv: str = "windows_real_oops_balanced_split.csv",
+    checkpoint: str = "outputs/video_cnn_transformer_real_oops.pt",
+    dataset_name: str = "GMDCSA24 + LE2I + OOPs",
+    note: str = "Closest available expanded CNN Transformer run. This checkpoint was not retrained after CAUCAFall was added.",
 ) -> str:
     import subprocess
     import sys
@@ -62,6 +66,14 @@ def tune_cnn_real_oops_thresholds(
         str(batch_size),
         "--target-recall",
         str(target_recall),
+        "--windows-csv",
+        windows_csv,
+        "--checkpoint",
+        checkpoint,
+        "--dataset-name",
+        dataset_name,
+        "--note",
+        note,
     ]
     print("Running:", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True)
@@ -77,10 +89,18 @@ def main(
     ),
     batch_size: int = 8,
     target_recall: float = 0.75,
+    windows_csv: str = "windows_real_oops_balanced_split.csv",
+    checkpoint: str = "outputs/video_cnn_transformer_real_oops.pt",
+    dataset_name: str = "GMDCSA24 + LE2I + OOPs",
+    note: str = "Closest available expanded CNN Transformer run. This checkpoint was not retrained after CAUCAFall was added.",
 ) -> None:
     output_path = tune_cnn_real_oops_thresholds.remote(
         output=output,
         batch_size=batch_size,
         target_recall=target_recall,
+        windows_csv=windows_csv,
+        checkpoint=checkpoint,
+        dataset_name=dataset_name,
+        note=note,
     )
     print(f"Saved CNN threshold tuning: {output_path}", flush=True)

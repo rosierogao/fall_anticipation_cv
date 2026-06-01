@@ -43,6 +43,7 @@ specificity.
 
 | Task | Model | Threshold | Test Acc | Balanced Acc | Pos Precision | Pos Recall | Pos F1 | Pos F2 | Test TN | Test FP | Test FN | Test TP |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Fall anticipation | Video CNN + Transformer* | 0.340 | 0.293 | 0.496 | 0.191 | 0.826 | 0.310 | 0.496 | 60 | 301 | 15 | 71 |
 | Fall anticipation | Pose Transformer | 0.333 | 0.257 | 0.544 | 0.147 | 0.938 | 0.255 | 0.453 | 155 | 873 | 10 | 151 |
 | Fall anticipation | Pose Predictive | 0.464 | 0.218 | 0.521 | 0.141 | 0.938 | 0.245 | 0.440 | 108 | 920 | 10 | 151 |
 | Fall anticipation | V-JEPA Baseline | 0.270 | 0.521 | 0.615 | 0.185 | 0.745 | 0.296 | 0.464 | 499 | 529 | 41 | 120 |
@@ -59,6 +60,7 @@ accuracy, then evaluated on the test split.
 
 | Task | Model | Threshold | Test Acc | Balanced Acc | Pos Precision | Pos Recall | Pos F1 | Pos F2 | Test TN | Test FP | Test FN | Test TP |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Fall anticipation | Video CNN + Transformer* | 0.451 | 0.515 | 0.540 | 0.216 | 0.581 | 0.315 | 0.435 | 180 | 181 | 36 | 50 |
 | Fall anticipation | Pose Transformer | 0.344 | 0.431 | 0.569 | 0.161 | 0.758 | 0.265 | 0.435 | 391 | 637 | 39 | 122 |
 | Fall anticipation | Pose Predictive | 0.464 | 0.218 | 0.521 | 0.141 | 0.938 | 0.245 | 0.440 | 108 | 920 | 10 | 151 |
 | Fall anticipation | V-JEPA Baseline | 0.580 | 0.765 | 0.657 | 0.291 | 0.509 | 0.370 | 0.443 | 828 | 200 | 79 | 82 |
@@ -67,6 +69,9 @@ accuracy, then evaluated on the test split.
 | Fallen-state | Pose Predictive | 0.550 | 0.725 | 0.670 | 0.527 | 0.538 | 0.532 | 0.535 | 755 | 186 | 178 | 207 |
 | Fallen-state | V-JEPA Baseline | 0.402 | 0.827 | 0.830 | 0.660 | 0.836 | 0.738 | 0.794 | 775 | 166 | 63 | 322 |
 | Fallen-state | V-JEPA Predictive | 0.648 | 0.875 | 0.859 | 0.765 | 0.821 | 0.792 | 0.809 | 844 | 97 | 69 | 316 |
+
+
+*Staged CNN Transformer row uses the original staged raw-frame checkpoint on GMDCSA24. It was not retrained on the later GMDCSA24 + LE2I + CAUCAFall pool.
 
 ## Expanded Staged + OOPs Fall-Anticipation Results
 
@@ -87,6 +92,7 @@ evaluated on the test split.
 
 | Model | Threshold | Test Acc | Balanced Acc | Pos Precision | Pos Recall | Pos F1 | Pos F2 | Test TN | Test FP | Test FN | Test TP |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Video CNN + Transformer* | 0.220 | 0.386 | 0.538 | 0.333 | 0.948 | 0.493 | 0.692 | 188 | 1291 | 35 | 644 |
 | Pose Transformer | 0.146 | 0.333 | 0.512 | 0.313 | 0.977 | 0.474 | 0.686 | 72 | 1488 | 16 | 679 |
 | V-JEPA Baseline | 0.123 | 0.592 | 0.684 | 0.415 | 0.911 | 0.570 | 0.735 | 753 | 893 | 62 | 633 |
 | V-JEPA Predictive | 0.182 | 0.607 | 0.695 | 0.425 | 0.911 | 0.579 | 0.741 | 789 | 857 | 62 | 633 |
@@ -98,6 +104,9 @@ accuracy, then evaluated on the test split.
 
 | Model | Threshold | Test Acc | Balanced Acc | Pos Precision | Pos Recall | Pos F1 | Pos F2 | Test TN | Test FP | Test FN | Test TP |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Video CNN + Transformer* | 0.537 | 0.681 | 0.675 | 0.495 | 0.660 | 0.566 | 0.619 | 1022 | 457 | 231 | 448 |
 | Pose Transformer | 0.597 | 0.678 | 0.589 | 0.470 | 0.358 | 0.407 | 0.376 | 1279 | 281 | 446 | 249 |
 | V-JEPA Baseline | 0.287 | 0.712 | 0.747 | 0.509 | 0.833 | 0.632 | 0.739 | 1088 | 558 | 116 | 579 |
 | V-JEPA Predictive | 0.249 | 0.671 | 0.727 | 0.470 | 0.865 | 0.609 | 0.741 | 969 | 677 | 94 | 601 |
+
+*CNN Transformer row uses the closest available expanded raw-frame run: GMDCSA24 + LE2I + OOPs. It was not retrained after CAUCAFall was added.

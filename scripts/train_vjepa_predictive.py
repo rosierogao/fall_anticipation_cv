@@ -53,6 +53,12 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=DEFAULT_PREDICTIVE_LOSS_WEIGHT,
     )
+    parser.add_argument(
+        "--predictive-loss",
+        choices=["cosine", "l1", "mse"],
+        default="cosine",
+        help="Future-latent prediction loss for predictive V-JEPA.",
+    )
     parser.add_argument("--num-workers", type=int, default=0)
     return parser.parse_args()
 
@@ -236,6 +242,7 @@ def main() -> None:
             dropout=args.dropout,
             future_steps=future_steps,
             predictive_loss_weight=args.predictive_loss_weight,
+            predictive_loss=args.predictive_loss,
         ).to(device)
         model_name = "vjepa_latent_predictive"
     else:
@@ -335,6 +342,7 @@ def main() -> None:
                     "val_acc": val_acc,
                     "class_weights": class_weights.detach().cpu().tolist(),
                     "predictive_loss_weight": args.predictive_loss_weight,
+                    "predictive_loss": args.predictive_loss,
                     "d_model": args.d_model,
                     "num_heads": args.num_heads,
                     "num_layers": args.num_layers,
@@ -384,6 +392,7 @@ def main() -> None:
         "test_acc": test_acc,
         "class_weights": class_weights.detach().cpu().tolist(),
         "predictive_loss_weight": args.predictive_loss_weight if use_predictive_loss else 0.0,
+        "predictive_loss": args.predictive_loss if use_predictive_loss else None,
         **binary_classification_metrics(labels, predictions),
     }
     metrics_path.write_text(json.dumps(metrics, indent=2) + "\n")

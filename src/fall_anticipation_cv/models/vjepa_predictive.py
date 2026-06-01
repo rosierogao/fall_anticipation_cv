@@ -147,6 +147,8 @@ class VJEPALatentPredictiveModel(nn.Module):
         predicted_future: torch.Tensor,
         target_future: torch.Tensor,
     ) -> torch.Tensor:
+        if self.predictive_loss == "l1":
+            return F.l1_loss(predicted_future, target_future)
         if self.predictive_loss == "mse":
             return F.mse_loss(predicted_future, target_future)
         if self.predictive_loss != "cosine":

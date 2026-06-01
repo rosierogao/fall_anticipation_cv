@@ -38,6 +38,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", required=True)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--target-recall", type=float, default=0.75)
+    parser.add_argument("--windows-csv", default="windows_real_oops_balanced_split.csv")
+    parser.add_argument("--checkpoint", default="outputs/video_cnn_transformer_real_oops.pt")
+    parser.add_argument("--dataset-name", default="GMDCSA24 + LE2I + OOPs")
+    parser.add_argument("--note", default="Closest available expanded CNN Transformer run. This checkpoint was not retrained after CAUCAFall was added.")
     return parser.parse_args()
 
 
@@ -46,8 +50,8 @@ def main() -> None:
     data_root = Path(args.data_root)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     val_labels, val_probs, test_labels, test_probs = predict_video(
-        windows_csv=data_root / "windows_real_oops_balanced_split.csv",
-        checkpoint=data_root / "outputs/video_cnn_transformer_real_oops.pt",
+        windows_csv=data_root / args.windows_csv,
+        checkpoint=data_root / args.checkpoint,
         batch_size=args.batch_size,
         device=device,
     )
@@ -56,14 +60,11 @@ def main() -> None:
     balanced_threshold = tuned["best_balanced_accuracy"]["threshold"]
 
     results = {
-        "dataset": "GMDCSA24 + LE2I + OOPs",
-        "note": (
-            "Closest available expanded CNN Transformer run. This checkpoint was "
-            "not retrained after CAUCAFall was added."
-        ),
+        "dataset": args.dataset_name,
+        "note": args.note,
         "model": "video_cnn_transformer",
-        "windows_csv": str(data_root / "windows_real_oops_balanced_split.csv"),
-        "checkpoint": str(data_root / "outputs/video_cnn_transformer_real_oops.pt"),
+        "windows_csv": str(data_root / args.windows_csv),
+        "checkpoint": str(data_root / args.checkpoint),
         "validation_best_f2": tuned["best_f2"],
         "validation_best_balanced_accuracy": tuned["best_balanced_accuracy"],
         "test_default_threshold_0_5": add_derived_metrics(

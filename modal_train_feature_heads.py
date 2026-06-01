@@ -55,6 +55,7 @@ def train_feature_heads(
     batch_size: int = 32,
     model: str = "all",
     vjepa_num_workers: int = 4,
+    predictive_loss: str = "cosine",
 ) -> dict:
     import sys
     from pathlib import Path
@@ -144,6 +145,8 @@ def train_feature_heads(
                 "predictive",
                 "--predictive-loss-weight",
                 "0.2",
+                "--predictive-loss",
+                predictive_loss,
             ]
         )
         volume.commit()
@@ -164,6 +167,7 @@ def main(
     batch_size: int = 32,
     model: str = "all",
     vjepa_num_workers: int = 4,
+    predictive_loss: str = "cosine",
 ) -> None:
     metrics = train_feature_heads.remote(
         pose_windows_csv=pose_windows_csv,
@@ -173,5 +177,6 @@ def main(
         batch_size=batch_size,
         model=model,
         vjepa_num_workers=vjepa_num_workers,
+        predictive_loss=predictive_loss,
     )
     print(f"Completed feature-head training: {metrics}", flush=True)
