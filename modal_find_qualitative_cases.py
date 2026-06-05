@@ -47,6 +47,7 @@ def find_qualitative_cases(
     examples_per_bucket: int = 8,
     frames_per_contact_sheet: int = 8,
     dataset_preset: str = "staged_caucafall_oops",
+    selected_datasets: str = "",
 ) -> dict:
     import json
     from pathlib import Path
@@ -335,25 +336,60 @@ def find_qualitative_cases(
         make_contact_sheet(row, "case") for _, row in selected.iterrows()
     ]
 
+    selected_by_dataset_source = merged
+    if selected_datasets.strip():
+        dataset_names = [
+            dataset.strip()
+            for dataset in selected_datasets.split(",")
+            if dataset.strip()
+        ]
+        selected_by_dataset_source = merged[
+            merged["dataset"].astype(str).isin(dataset_names)
+        ].copy()
+    selected_by_dataset = (
+        selected_by_dataset_source.sort_values(sort_cols, ascending=False)
+        .groupby(["dataset", "bucket"], group_keys=False)
+        .head(examples_per_bucket)
+        .copy()
+    )
+    selected_by_dataset["contact_sheet_path"] = [
+        make_contact_sheet(row, "case_by_dataset")
+        for _, row in selected_by_dataset.iterrows()
+    ]
+
     bucket_counts = merged["bucket"].value_counts().to_dict()
     full_csv = output_path / f"{dataset_preset}_vjepa_pose_cases_{threshold_policy}_all.csv"
     selected_csv = (
         output_path / f"{dataset_preset}_vjepa_pose_cases_{threshold_policy}_selected.csv"
     )
+    selected_by_dataset_csv = (
+        output_path
+        / f"{dataset_preset}_vjepa_pose_cases_{threshold_policy}_selected_by_dataset.csv"
+    )
     merged.to_csv(full_csv, index=False)
     selected.to_csv(selected_csv, index=False)
+    selected_by_dataset.to_csv(selected_by_dataset_csv, index=False)
 
     summary = {
         "dataset_preset": dataset_preset,
         "threshold_policy": threshold_policy,
+        "selected_datasets": selected_datasets,
         "pose_threshold": pose_threshold,
         "vjepa_threshold": vjepa_threshold,
         "pose_metrics": pose_metrics,
         "vjepa_metrics": vjepa_metrics,
         "joined_test_windows": int(len(merged)),
         "bucket_counts": {k: int(v) for k, v in bucket_counts.items()},
+        "bucket_counts_by_dataset": {
+            f"{dataset}:{bucket}": int(count)
+            for (dataset, bucket), count in merged.groupby(["dataset", "bucket"])
+            .size()
+            .to_dict()
+            .items()
+        },
         "all_cases_csv": str(full_csv),
         "selected_cases_csv": str(selected_csv),
+        "selected_by_dataset_cases_csv": str(selected_by_dataset_csv),
         "contact_sheets_dir": str(sheets_dir),
     }
     summary_path = output_path / f"{dataset_preset}_vjepa_pose_cases_{threshold_policy}_summary.json"
@@ -369,6 +405,7 @@ def main(
     examples_per_bucket: int = 8,
     frames_per_contact_sheet: int = 8,
     dataset_preset: str = "staged_caucafall_oops",
+    selected_datasets: str = "",
 ) -> None:
     summary = find_qualitative_cases.remote(
         output_dir=output_dir,
@@ -376,5 +413,6 @@ def main(
         examples_per_bucket=examples_per_bucket,
         frames_per_contact_sheet=frames_per_contact_sheet,
         dataset_preset=dataset_preset,
+        selected_datasets=selected_datasets,
     )
     print(summary)

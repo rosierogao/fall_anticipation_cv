@@ -66,6 +66,17 @@ def fusion_forward(batch: object, model: torch.nn.Module) -> torch.Tensor:
     return model(pose_features, vjepa_latents, lengths)
 
 
+def split_windows(windows: pd.DataFrame):
+    if "split" in windows.columns:
+        split = windows["split"].astype(str).str.lower()
+        return (
+            windows[split == "train"].copy(),
+            windows[split == "val"].copy(),
+            windows[split == "test"].copy(),
+        )
+    return split_by_subject(windows)
+
+
 def infer_input_dims(
     windows: pd.DataFrame,
     pose_feature_col: str,
@@ -167,7 +178,7 @@ def main() -> None:
         raise ValueError(f"Missing required columns in windows CSV: {sorted(missing)}")
     windows = windows.dropna(subset=[args.pose_feature_col, args.vjepa_feature_col])
 
-    train_df, val_df, test_df = split_by_subject(windows)
+    train_df, val_df, test_df = split_windows(windows)
     normalize_pose = not args.raw_pose
     add_velocity = not args.no_velocity
     pose_dim, vjepa_dim = infer_input_dims(
@@ -313,6 +324,7 @@ def main() -> None:
         "add_velocity": add_velocity,
         "epochs": args.epochs,
         "batch_size": args.batch_size,
+        "split_sizes": {"train": len(train_df), "val": len(val_df), "test": len(test_df)},
         "best_epoch": best_epoch,
         "val_loss": best_val_loss,
         "val_acc": best_val_acc,

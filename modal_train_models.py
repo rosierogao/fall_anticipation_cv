@@ -246,6 +246,7 @@ def main(
     checkpoint: str | None = None,
     metrics: str | None = None,
     num_workers: int = 4,
+    sync: bool = False,
 ) -> None:
     if action == "eval":
         if model != "video":
@@ -257,16 +258,22 @@ def main(
         raise ValueError("action must be 'train' or 'eval'")
 
     if model == "video":
-        call = train_video_cnn_transformer.spawn(
-            windows_csv=windows_csv or f"{DATASET_ROOT}/windows_gmdcsa24.csv",
-            checkpoint=checkpoint or f"{DATASET_ROOT}/outputs/video_cnn_transformer_baseline.pt",
-            metrics=metrics or f"{DATASET_ROOT}/outputs/video_cnn_transformer_metrics.json",
-            epochs=epochs,
-            batch_size=batch_size or 16,
-            resume=resume,
-            num_workers=num_workers,
-        )
-        print(f"Spawned video CNN/Transformer training: {call.object_id}", flush=True)
+        kwargs = {
+            "windows_csv": windows_csv or f"{DATASET_ROOT}/windows_gmdcsa24.csv",
+            "checkpoint": checkpoint
+            or f"{DATASET_ROOT}/outputs/video_cnn_transformer_baseline.pt",
+            "metrics": metrics or f"{DATASET_ROOT}/outputs/video_cnn_transformer_metrics.json",
+            "epochs": epochs,
+            "batch_size": batch_size or 16,
+            "resume": resume,
+            "num_workers": num_workers,
+        }
+        if sync:
+            metrics_path = train_video_cnn_transformer.remote(**kwargs)
+            print(f"Completed video CNN/Transformer training: {metrics_path}", flush=True)
+        else:
+            call = train_video_cnn_transformer.spawn(**kwargs)
+            print(f"Spawned video CNN/Transformer training: {call.object_id}", flush=True)
     elif model == "pose":
         call = train_pose_transformer.spawn(
             windows_csv=windows_csv or f"{DATASET_ROOT}/pose_windows_rtmpose.csv",

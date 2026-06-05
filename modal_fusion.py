@@ -93,12 +93,16 @@ def main(
     num_workers: int = 4,
     windows_csv: str = f"{DATASET_ROOT}/vjepa_windows.csv",
     pose_windows_csv: str = f"{DATASET_ROOT}/pose_windows_rtmpose.csv",
+    checkpoint: str = f"{DATASET_ROOT}/outputs/pose_vjepa_fusion.pt",
+    metrics: str = f"{DATASET_ROOT}/outputs/pose_vjepa_fusion_metrics.json",
 ) -> None:
-    call = train_pose_vjepa_fusion.spawn(
+    result = train_pose_vjepa_fusion.remote(
         windows_csv=windows_csv,
         pose_windows_csv=pose_windows_csv,
+        checkpoint=checkpoint,
+        metrics=metrics,
         epochs=epochs,
         batch_size=batch_size,
         num_workers=num_workers,
     )
-    print(f"Spawned pose + V-JEPA fusion training: {call.object_id}", flush=True)
+    print(f"Completed pose + V-JEPA fusion training: {result}", flush=True)

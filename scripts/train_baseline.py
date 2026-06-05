@@ -21,6 +21,17 @@ from fall_anticipation_cv.training_common import (
 )
 
 
+def split_windows(windows: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    if "split" in windows.columns:
+        split = windows["split"].astype(str).str.lower()
+        return (
+            windows[split == "train"].copy(),
+            windows[split == "val"].copy(),
+            windows[split == "test"].copy(),
+        )
+    return split_by_subject(windows)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a video fall-anticipation model.")
     parser.add_argument("--windows-csv", required=True, help="Window metadata CSV.")
@@ -80,7 +91,7 @@ def main() -> None:
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
 
     windows = pd.read_csv(args.windows_csv)
-    train_df, val_df, test_df = split_by_subject(windows)
+    train_df, val_df, test_df = split_windows(windows)
 
     train_loader = make_loader(train_df, args.batch_size, True, args.num_workers)
     val_loader = make_loader(val_df, args.batch_size, False, args.num_workers)

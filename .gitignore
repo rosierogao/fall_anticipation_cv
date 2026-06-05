@@ -13,3 +13,5 @@ runs/
 checkpoints/
 *.pt
 *.pth
+
+paper/

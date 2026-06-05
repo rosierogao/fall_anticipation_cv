@@ -19,6 +19,17 @@ from fall_anticipation_cv.training_common import (
 )
 
 
+def split_windows(windows: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    if "split" in windows.columns:
+        split = windows["split"].astype(str).str.lower()
+        return (
+            windows[split == "train"].copy(),
+            windows[split == "val"].copy(),
+            windows[split == "test"].copy(),
+        )
+    return split_by_subject(windows)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate a saved video checkpoint.")
     parser.add_argument("--windows-csv", required=True)
@@ -48,7 +59,7 @@ def main() -> None:
     args = parse_args()
 
     windows = pd.read_csv(args.windows_csv)
-    train_df, val_df, test_df = split_by_subject(windows)
+    train_df, val_df, test_df = split_windows(windows)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = VideoCNNTransformerBaseline(num_classes=2).to(device)

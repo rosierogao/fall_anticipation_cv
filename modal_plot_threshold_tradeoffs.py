@@ -2,7 +2,6 @@ from pathlib import Path
 
 import modal
 
-
 APP_NAME = "cs231n-final-project"
 DATA_ROOT = "/data"
 DATASET_ROOT = f"{DATA_ROOT}/final_project_dataset"
@@ -11,7 +10,7 @@ PACKAGE_REMOTE_ROOT = "/root/project"
 LOCAL_PACKAGE_DIR = Path(__file__).parent / "src" / "fall_anticipation_cv"
 LOCAL_SCRIPTS_DIR = Path(__file__).parent / "scripts"
 
-app = modal.App(f"{APP_NAME}-temporal-ablation")
+app = modal.App(f"{APP_NAME}-threshold-tradeoff-plots")
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=False)
 
 image = (
@@ -22,6 +21,8 @@ image = (
         "pandas<3.0",
         "scikit-learn",
         "torch==2.3.1",
+        "tqdm",
+        "matplotlib",
     )
     .add_local_dir(
         LOCAL_PACKAGE_DIR,
@@ -39,51 +40,48 @@ image = (
     gpu="H100",
     timeout=60 * 60 * 2,
 )
-def run_temporal_ablation(
-    output_dir: str = f"{DATASET_ROOT}/outputs/temporal_ablation_staged_caucafall",
+def plot_threshold_tradeoffs(
+    output_dir: str = f"{DATASET_ROOT}/outputs/figures",
     batch_size: int = 32,
-    ablation_method: str = "delete",
-    mask_value: str = "zero",
-    model_set: str = "staged_caucafall",
-) -> str:
+    target_recall: float = 0.75,
+) -> list[str]:
     import subprocess
     import sys
 
     cmd = [
         sys.executable,
-        f"{PACKAGE_REMOTE_ROOT}/scripts/evaluate_temporal_ablation.py",
+        f"{PACKAGE_REMOTE_ROOT}/scripts/plot_expanded_threshold_tradeoff_curves.py",
         "--data-root",
         DATASET_ROOT,
         "--output-dir",
         output_dir,
         "--batch-size",
         str(batch_size),
-        "--ablation-method",
-        ablation_method,
-        "--mask-value",
-        mask_value,
-        "--model-set",
-        model_set,
+        "--target-recall",
+        str(target_recall),
     ]
     print("Running:", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True)
     volume.commit()
-    return output_dir
+    return [
+        f"{output_dir}/expanded_precision_recall_curve.svg",
+        f"{output_dir}/expanded_recall_fpr_curve.svg",
+        f"{output_dir}/expanded_threshold_tradeoff_curve_points.csv",
+        f"{output_dir}/expanded_threshold_tradeoff_markers.json",
+    ]
 
 
 @app.local_entrypoint()
 def main(
-    output_dir: str = f"{DATASET_ROOT}/outputs/temporal_ablation_staged_caucafall",
+    output_dir: str = f"{DATASET_ROOT}/outputs/figures",
     batch_size: int = 32,
-    ablation_method: str = "delete",
-    mask_value: str = "zero",
-    model_set: str = "staged_caucafall",
+    target_recall: float = 0.75,
 ) -> None:
-    saved_dir = run_temporal_ablation.remote(
+    paths = plot_threshold_tradeoffs.remote(
         output_dir=output_dir,
         batch_size=batch_size,
-        ablation_method=ablation_method,
-        mask_value=mask_value,
-        model_set=model_set,
+        target_recall=target_recall,
     )
-    print(f"Saved temporal ablation outputs: {saved_dir}", flush=True)
+    print("Saved threshold tradeoff artifacts:")
+    for path in paths:
+        print(path)

@@ -1,0 +1,42 @@
+{
+  "model": "pose_vjepa_fusion_transformer",
+  "windows_csv": "/data/final_project_dataset/vjepa_windows_staged_caucafall_joined.csv",
+  "pose_feature_col": "pose_feature_path",
+  "vjepa_feature_col": "vjepa_feature_path",
+  "checkpoint": "/data/final_project_dataset/outputs/pose_vjepa_fusion_staged_caucafall.pt",
+  "pose_dim": 85,
+  "vjepa_dim": 1024,
+  "projection_dim": 256,
+  "fused_dim": 512,
+  "d_model": 256,
+  "num_heads": 4,
+  "num_layers": 1,
+  "num_parameters": 1206786,
+  "normalize_pose": true,
+  "add_velocity": true,
+  "epochs": 5,
+  "batch_size": 32,
+  "split_sizes": {
+    "train": 2369,
+    "val": 653,
+    "test": 1189
+  },
+  "best_epoch": 2,
+  "val_loss": 0.5330005658257062,
+  "val_acc": 0.7886676875957122,
+  "test_loss": 0.6070237696621977,
+  "test_acc": 0.7636669470142977,
+  "class_weights": [
+    0.5928428173065186,
+    3.1927223205566406
+  ],
+  "confusion_matrix": {
+    "true_negative": 817,
+    "false_positive": 211,
+    "false_negative": 70,
+    "true_positive": 91
+  },
+  "positive_precision": 0.30132450331125826,
+  "positive_recall": 0.5652173913043478,
+  "positive_f1": 0.39308855291576666
+}

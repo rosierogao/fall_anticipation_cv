@@ -11,7 +11,7 @@ PACKAGE_REMOTE_ROOT = "/root/project"
 LOCAL_PACKAGE_DIR = Path(__file__).parent / "src" / "fall_anticipation_cv"
 LOCAL_SCRIPTS_DIR = Path(__file__).parent / "scripts"
 
-app = modal.App(f"{APP_NAME}-temporal-ablation")
+app = modal.App(f"{APP_NAME}-expanded-by-dataset-thresholds")
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=False)
 
 image = (
@@ -22,6 +22,7 @@ image = (
         "pandas<3.0",
         "scikit-learn",
         "torch==2.3.1",
+        "tqdm",
     )
     .add_local_dir(
         LOCAL_PACKAGE_DIR,
@@ -39,51 +40,44 @@ image = (
     gpu="H100",
     timeout=60 * 60 * 2,
 )
-def run_temporal_ablation(
-    output_dir: str = f"{DATASET_ROOT}/outputs/temporal_ablation_staged_caucafall",
+def evaluate_expanded_by_dataset(
+    output: str = f"{DATASET_ROOT}/outputs/expanded_by_dataset_threshold_metrics.json",
     batch_size: int = 32,
-    ablation_method: str = "delete",
-    mask_value: str = "zero",
-    model_set: str = "staged_caucafall",
+    target_recall: float = 0.75,
+    datasets: str = "GMDCSA24,le2i,caucafall",
 ) -> str:
     import subprocess
     import sys
 
     cmd = [
         sys.executable,
-        f"{PACKAGE_REMOTE_ROOT}/scripts/evaluate_temporal_ablation.py",
+        f"{PACKAGE_REMOTE_ROOT}/scripts/evaluate_expanded_by_dataset_thresholds.py",
         "--data-root",
         DATASET_ROOT,
-        "--output-dir",
-        output_dir,
+        "--output",
+        output,
         "--batch-size",
         str(batch_size),
-        "--ablation-method",
-        ablation_method,
-        "--mask-value",
-        mask_value,
-        "--model-set",
-        model_set,
+        "--datasets",
+        *[dataset.strip() for dataset in datasets.split(",") if dataset.strip()],
     ]
     print("Running:", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True)
     volume.commit()
-    return output_dir
+    return output
 
 
 @app.local_entrypoint()
 def main(
-    output_dir: str = f"{DATASET_ROOT}/outputs/temporal_ablation_staged_caucafall",
+    output: str = f"{DATASET_ROOT}/outputs/expanded_by_dataset_threshold_metrics.json",
     batch_size: int = 32,
-    ablation_method: str = "delete",
-    mask_value: str = "zero",
-    model_set: str = "staged_caucafall",
+    target_recall: float = 0.75,
+    datasets: str = "GMDCSA24,le2i,caucafall",
 ) -> None:
-    saved_dir = run_temporal_ablation.remote(
-        output_dir=output_dir,
+    output_path = evaluate_expanded_by_dataset.remote(
+        output=output,
         batch_size=batch_size,
-        ablation_method=ablation_method,
-        mask_value=mask_value,
-        model_set=model_set,
+        target_recall=target_recall,
+        datasets=datasets,
     )
-    print(f"Saved temporal ablation outputs: {saved_dir}", flush=True)
+    print(f"Saved expanded by-dataset metrics: {output_path}", flush=True)

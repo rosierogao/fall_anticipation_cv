@@ -56,6 +56,7 @@ def train_feature_heads(
     model: str = "all",
     vjepa_num_workers: int = 4,
     predictive_loss: str = "cosine",
+    predictive_loss_weight: float = 0.2,
 ) -> dict:
     import sys
     from pathlib import Path
@@ -144,7 +145,7 @@ def train_feature_heads(
                 "--model",
                 "predictive",
                 "--predictive-loss-weight",
-                "0.2",
+                str(predictive_loss_weight),
                 "--predictive-loss",
                 predictive_loss,
             ]
@@ -168,6 +169,7 @@ def main(
     model: str = "all",
     vjepa_num_workers: int = 4,
     predictive_loss: str = "cosine",
+    predictive_loss_weight: float = 0.2,
 ) -> None:
     metrics = train_feature_heads.remote(
         pose_windows_csv=pose_windows_csv,
@@ -178,5 +180,6 @@ def main(
         model=model,
         vjepa_num_workers=vjepa_num_workers,
         predictive_loss=predictive_loss,
+        predictive_loss_weight=predictive_loss_weight,
     )
     print(f"Completed feature-head training: {metrics}", flush=True)

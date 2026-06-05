@@ -26,26 +26,56 @@ from fall_anticipation_cv.vjepa_data import (
 )
 
 
-MODEL_SPECS = [
-    {
-        "name": "pose_transformer",
-        "kind": "pose",
-        "windows_csv": "pose_windows_staged_caucafall_joined_rtmpose.csv",
-        "checkpoint": "outputs/pose_transformer_staged_caucafall_fall_anticipation.pt",
+MODEL_SPEC_SETS = {
+    "staged_caucafall": {
+        "description": "staged GMDCSA24 + le2i + caucafall",
+        "datasets": ["GMDCSA24", "le2i", "caucafall"],
+        "models": [
+            {
+                "name": "pose_transformer",
+                "kind": "pose",
+                "windows_csv": "pose_windows_staged_caucafall_joined_rtmpose.csv",
+                "checkpoint": "outputs/pose_transformer_staged_caucafall_fall_anticipation.pt",
+            },
+            {
+                "name": "vjepa_baseline",
+                "kind": "vjepa",
+                "windows_csv": "vjepa_windows_staged_caucafall_joined.csv",
+                "checkpoint": "outputs/vjepa_baseline_staged_caucafall_fall_anticipation.pt",
+            },
+            {
+                "name": "vjepa_predictive",
+                "kind": "vjepa",
+                "windows_csv": "vjepa_windows_staged_caucafall_joined.csv",
+                "checkpoint": "outputs/vjepa_latent_predictive_staged_caucafall_fall_anticipation.pt",
+            },
+        ],
     },
-    {
-        "name": "vjepa_baseline",
-        "kind": "vjepa",
-        "windows_csv": "vjepa_windows_staged_caucafall_joined.csv",
-        "checkpoint": "outputs/vjepa_baseline_staged_caucafall_fall_anticipation.pt",
+    "staged_caucafall_oops": {
+        "description": "expanded GMDCSA24 + le2i + caucafall + OOPs",
+        "datasets": ["GMDCSA24", "le2i", "caucafall", "OOPs"],
+        "models": [
+            {
+                "name": "pose_transformer",
+                "kind": "pose",
+                "windows_csv": "pose_windows_staged_caucafall_oops_rtmpose.csv",
+                "checkpoint": "outputs/pose_transformer_staged_caucafall_oops_fall_anticipation.pt",
+            },
+            {
+                "name": "vjepa_baseline",
+                "kind": "vjepa",
+                "windows_csv": "vjepa_windows_staged_caucafall_oops.csv",
+                "checkpoint": "outputs/vjepa_baseline_staged_caucafall_oops_fall_anticipation.pt",
+            },
+            {
+                "name": "vjepa_predictive",
+                "kind": "vjepa",
+                "windows_csv": "vjepa_windows_staged_caucafall_oops.csv",
+                "checkpoint": "outputs/vjepa_latent_predictive_staged_caucafall_oops_fall_anticipation.pt",
+            },
+        ],
     },
-    {
-        "name": "vjepa_predictive",
-        "kind": "vjepa",
-        "windows_csv": "vjepa_windows_staged_caucafall_joined.csv",
-        "checkpoint": "outputs/vjepa_latent_predictive_staged_caucafall_fall_anticipation.pt",
-    },
-]
+}
 
 
 @dataclass
@@ -621,9 +651,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument(
+        "--model-set",
+        choices=sorted(MODEL_SPEC_SETS),
+        default="staged_caucafall",
+        help="Checkpoint/window set to evaluate.",
+    )
+    parser.add_argument(
         "--datasets",
         nargs="+",
-        default=["GMDCSA24", "le2i", "caucafall"],
+        default=None,
+        help="Optional dataset filter. Defaults to the selected model set datasets.",
     )
     parser.add_argument(
         "--ablation-method",
@@ -648,8 +685,13 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    spec_set = MODEL_SPEC_SETS[args.model_set]
+    selected_datasets = args.datasets or spec_set["datasets"]
+
     results = {
-        "dataset": "staged GMDCSA24 + le2i + caucafall",
+        "dataset": spec_set["description"],
+        "model_set": args.model_set,
+        "dataset_filter": selected_datasets,
         "split": "held-out test split from split_by_subject",
         "ablation_policy": (
             "For each observed pose frame or V-JEPA temporal latent token, "
@@ -662,7 +704,7 @@ def main() -> None:
         "device": str(device),
         "models": [],
     }
-    for spec in MODEL_SPECS:
+    for spec in spec_set["models"]:
         print(f"Evaluating temporal ablation for {spec['name']}", flush=True)
         if spec["kind"] == "pose":
             model_result_data = evaluate_pose(
@@ -670,7 +712,7 @@ def main() -> None:
                 data_root=data_root,
                 batch_size=args.batch_size,
                 device=device,
-                dataset_names=args.datasets,
+                dataset_names=selected_datasets,
                 ablation_method=args.ablation_method,
                 mask_value=args.mask_value,
             )
@@ -680,7 +722,7 @@ def main() -> None:
                 data_root=data_root,
                 batch_size=args.batch_size,
                 device=device,
-                dataset_names=args.datasets,
+                dataset_names=selected_datasets,
                 ablation_method=args.ablation_method,
                 mask_value=args.mask_value,
             )
