@@ -505,6 +505,107 @@ def build_windows_for_row(
     return samples
 
 
+def build_classification_windows_for_row(
+    row: pd.Series,
+    positive_label: str = POSITIVE_LABEL,
+    negative_labels: set[str] | None = None,
+    exclude_labels: set[str] | None = None,
+) -> list[dict]:
+    positive_label = normalize_label_name(positive_label)
+    negative_labels = NEGATIVE_LABELS if negative_labels is None else negative_labels
+    exclude_labels = EXCLUDE_LABELS if exclude_labels is None else exclude_labels
+    label_name = str(row.get("label_name", "")).strip().lower()
+
+    if label_name in {"", "nan"} or label_name in exclude_labels:
+        return []
+    if label_name != positive_label and label_name not in negative_labels:
+        return []
+
+    video_path = row.get("video_path", None)
+    if video_path is None or pd.isna(video_path) or not os.path.exists(str(video_path)):
+        return []
+
+    video_info = get_video_info(str(video_path))
+    if video_info is None:
+        return []
+
+    original_fps, n_original_frames = video_info
+    sample_interval = max(1.0, original_fps / TARGET_FPS)
+    n_sampled_frames = int(np.ceil(n_original_frames / sample_interval))
+
+    if n_sampled_frames < OBS_LEN:
+        return []
+
+    y = 1 if label_name == positive_label else 0
+
+    action_start_sampled = np.nan
+    if label_name == positive_label:
+        if "start_frame" in row and not pd.isna(row["start_frame"]):
+            action_start_original = int(row["start_frame"])
+        else:
+            action_start_original = int(float(row["start"]) * original_fps)
+        action_start_sampled = int(round(action_start_original / sample_interval))
+
+    return [
+        {
+            "video_path": str(video_path),
+            "label_name": label_name,
+            "subject": row["subject"],
+            "cam": row["cam"],
+            "dataset": row.get("dataset", None),
+            "split_group": row.get("split_group", row["subject"]),
+            "window_start": 0,
+            "window_end": n_sampled_frames,
+            "target_frame": n_sampled_frames,
+            "obs_len": n_sampled_frames,
+            "k_frames": 0,
+            "target_fps": TARGET_FPS,
+            "sample_interval": sample_interval,
+            "y": y,
+            "fall_start_frame": action_start_sampled,
+        }
+    ]
+
+
+def build_classification_window_dataframe(
+    labels: pd.DataFrame,
+    positive_label: str = POSITIVE_LABEL,
+    exclude_labels: set[str] | None = None,
+) -> pd.DataFrame:
+    all_samples = []
+    for _, row in labels.iterrows():
+        all_samples.extend(
+            build_classification_windows_for_row(
+                row,
+                positive_label=positive_label,
+                exclude_labels=exclude_labels,
+            )
+        )
+
+    columns = [
+        "video_path",
+        "label_name",
+        "subject",
+        "cam",
+        "dataset",
+        "split_group",
+        "window_start",
+        "window_end",
+        "target_frame",
+        "obs_len",
+        "k_frames",
+        "target_fps",
+        "sample_interval",
+        "y",
+        "fall_start_frame",
+    ]
+    windows = pd.DataFrame(all_samples, columns=columns)
+    windows = windows.sort_values("y", ascending=False)
+    return windows.drop_duplicates(
+        subset=["video_path", "dataset"], keep="first"
+    ).reset_index(drop=True)
+
+
 def build_window_dataframe(
     labels: pd.DataFrame,
     horizon_sec: float = HORIZON_SEC,

@@ -31,6 +31,53 @@ def compute_class_weights(labels: torch.Tensor) -> torch.Tensor:
     return weights
 
 
+def compute_auc_pr(labels: list[int], probas: list[float]) -> float:
+    """Area under the precision-recall curve for the positive class."""
+    from sklearn.metrics import average_precision_score
+
+    return float(average_precision_score(labels, probas))
+
+
+@torch.no_grad()
+def evaluate_with_proba(
+    model: torch.nn.Module,
+    loader: DataLoader,
+    criterion: torch.nn.Module,
+    device: torch.device,
+    forward_fn: Callable[[object, torch.nn.Module], torch.Tensor],
+) -> tuple[float, float, list[int], list[int], list[float]]:
+    """Like evaluate() but also returns softmax probabilities for the positive class."""
+    import torch.nn.functional as F
+    from tqdm import tqdm
+
+    model.eval()
+    total_loss = 0.0
+    correct = 0
+    total = 0
+    predictions_all: list[int] = []
+    labels_all: list[int] = []
+    probas_all: list[float] = []
+
+    for batch in tqdm(loader, desc="Evaluating"):
+        batch = _move_batch_to_device(batch, device)
+        labels = _extract_labels(batch)
+
+        logits = forward_fn(batch, model)
+        loss = criterion(logits, labels)
+        predictions = torch.argmax(logits, dim=1)
+        probs = F.softmax(logits, dim=1)[:, 1]
+
+        total_loss += loss.item() * labels.size(0)
+        correct += (predictions == labels).sum().item()
+        total += labels.size(0)
+
+        predictions_all.extend(predictions.cpu().numpy().tolist())
+        labels_all.extend(labels.cpu().numpy().tolist())
+        probas_all.extend(probs.cpu().numpy().tolist())
+
+    return total_loss / total, correct / total, predictions_all, labels_all, probas_all
+
+
 def binary_classification_metrics(
     labels: list[int],
     predictions: list[int],

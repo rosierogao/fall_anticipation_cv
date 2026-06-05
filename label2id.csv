@@ -1,0 +1,17 @@
+label,id
+walk,0
+fall,1
+fallen,2
+sit_down,3
+sitting,4
+lie_down,5
+lying,6
+stand_up,7
+standing,8
+other,9
+kneel_down,10
+kneeling,11
+squat_down,12
+squatting,13
+crawl,14
+jump,15

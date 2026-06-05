@@ -20,12 +20,14 @@ class PoseWindowDataset(Dataset):
         label_col: str = "y",
         normalize: bool = True,
         add_velocity: bool = True,
+        max_seq_len: int | None = None,
     ):
         self.df = windows_df.reset_index(drop=True)
         self.feature_col = feature_col
         self.label_col = label_col
         self.normalize = normalize
         self.add_velocity = add_velocity
+        self.max_seq_len = max_seq_len
 
     def __len__(self) -> int:
         return len(self.df)
@@ -34,9 +36,13 @@ class PoseWindowDataset(Dataset):
         row = self.df.iloc[idx]
         feature_path = Path(row[self.feature_col])
 
-        features = np.load(feature_path).astype(np.float32)
+        raw = np.load(feature_path).astype(np.float32)
+        if self.max_seq_len is not None and raw.shape[0] > self.max_seq_len:
+            indices = np.linspace(0, raw.shape[0] - 1, self.max_seq_len, dtype=int)
+            raw = raw[indices]
+
         features = prepare_pose_features(
-            features,
+            raw,
             normalize=self.normalize,
             add_velocity=self.add_velocity,
         )

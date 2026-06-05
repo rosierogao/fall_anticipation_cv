@@ -13,6 +13,7 @@ class PoseTransformerBaseline(nn.Module):
         num_layers: int = 1,
         dropout: float = 0.3,
         num_classes: int = 2,
+        max_seq_len: int = 511,
     ):
         super().__init__()
         from fall_anticipation_cv.models.temporal_transformer import (
@@ -26,6 +27,7 @@ class PoseTransformerBaseline(nn.Module):
             num_layers=num_layers,
             dropout=dropout,
             num_classes=num_classes,
+            max_seq_len=max_seq_len,
         )
 
     def forward(self, x: torch.Tensor, lengths: torch.Tensor | None = None) -> torch.Tensor:

@@ -1,0 +1,18 @@
+{
+  "dataset_preset": "staged_caucafall_oops",
+  "pose_threshold": 0.6,
+  "vjepa_threshold": 0.25,
+  "pose_test_size": 2255,
+  "vjepa_test_size": 2341,
+  "merged_test_size": 2255,
+  "bucket_counts": {
+    "both_correct": 1052,
+    "vjepa_correct_pose_wrong": 519,
+    "pose_correct_vjepa_wrong": 478,
+    "both_wrong": 206
+  },
+  "outputs": {
+    "tsne_by_label": "/data/final_project_dataset/outputs/qualitative_analysis/tsne_by_label.png",
+    "tsne_by_dataset": "/data/final_project_dataset/outputs/qualitative_analysis/tsne_by_dataset.png"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "model": "vjepa_latent_predictive",
+  "windows_csv": "/data/final_project_dataset/vjepa_windows.csv",
+  "feature_col": "vjepa_feature_path",
+  "checkpoint": "/data/final_project_dataset/outputs/vjepa_latent_predictive.pt",
+  "latent_dim": 1024,
+  "future_steps": 5,
+  "epochs": 5,
+  "batch_size": 32,
+  "best_epoch": 3,
+  "val_loss": 0.33514548398052474,
+  "val_acc": 0.8886010362694301,
+  "test_loss": 0.5259854197502136,
+  "test_classification_loss": 0.5119572164965611,
+  "test_predictive_loss": 0.07014101198296142,
+  "test_acc": 0.7843137254901961,
+  "class_weights": [
+    0.5664371848106384,
+    4.262953281402588
+  ],
+  "predictive_loss_weight": 0.2,
+  "confusion_matrix": {
+    "true_negative": 295,
+    "false_positive": 78,
+    "false_negative": 21,
+    "true_positive": 65
+  },
+  "positive_precision": 0.45454545454545453,
+  "positive_recall": 0.7558139534883721,
+  "positive_f1": 0.5676855895196506
+}

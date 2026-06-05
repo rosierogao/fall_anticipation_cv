@@ -29,11 +29,14 @@ class TemporalTransformerClassifier(nn.Module):
         num_layers: int = 1,
         dropout: float = 0.3,
         num_classes: int = 2,
+        max_seq_len: int = 511,
     ):
         super().__init__()
         self.input_projection = nn.Linear(input_dim, d_model)
         self.cls_token = nn.Parameter(torch.zeros(1, 1, d_model))
-        self.position_encoding = SinusoidalPositionalEncoding(d_model)
+        self.position_encoding = SinusoidalPositionalEncoding(
+            d_model, max_len=max_seq_len + 1,
+        )
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=num_heads,

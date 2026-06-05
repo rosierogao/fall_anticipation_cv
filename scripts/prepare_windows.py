@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fall_anticipation_cv.data import (
     assign_group_splits,
+    build_classification_window_dataframe,
     build_window_dataframe,
     load_all_labels,
     sample_oops_negative_windows,
@@ -36,6 +37,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Save a train/val/test split column assigned at subject/video-group level.",
     )
+    parser.add_argument(
+        "--classification",
+        action="store_true",
+        help="Use full clips for fall classification instead of anticipation windows.",
+    )
     return parser.parse_args()
 
 
@@ -45,8 +51,11 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
 
     labels = load_all_labels(args.data_root, include_oops=args.include_oops)
-    windows = build_window_dataframe(labels)
-    if args.include_oops:
+    if args.classification:
+        windows = build_classification_window_dataframe(labels)
+    else:
+        windows = build_window_dataframe(labels)
+    if args.include_oops and not args.classification:
         windows = sample_oops_negative_windows(
             windows,
             negative_to_positive_ratio=args.oops_negative_ratio,
