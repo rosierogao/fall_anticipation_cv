@@ -1,25 +1,58 @@
 # Fall Anticipation CV
 
-Computer-vision experiments for anticipating falls from video windows.
+This repository contains the code, experiment artifacts, and CS231n report for a computer-vision project on early fall anticipation from short video clips. The main task is binary prediction: given a 1.6 second observed clip sampled at 10 FPS, predict whether a fall will begin within the next 1.0 second. A secondary experiment predicts future fallen state within a 2.0 second horizon.
 
-The original milestone notebook is preserved at
-`notebooks/baseline_milestone_check_in_2.ipynb`. Its current model has been
-promoted into the repository as the baseline model:
-`fall_anticipation_cv.models.baseline.SimpleVideoCNN`.
+The final report source is in [`paper/`](paper/), and the compiled PDF is [`paper/main.pdf`](paper/main.pdf).
 
-## Repository layout
+## Current Scope
+
+The project compares lightweight temporal heads over several video representations:
+
+- **Video CNN + Transformer**: raw RGB frames encoded with a small CNN, followed by a Transformer temporal classifier.
+- **Pose Transformer**: RTMPose keypoint features followed by a Transformer temporal classifier.
+- **Pose Predictive**: pose sequence model with an auxiliary future-pose prediction objective.
+- **V-JEPA Baseline**: frozen V-JEPA latent features with a Transformer classifier and classification loss only.
+- **V-JEPA Predictive**: frozen V-JEPA latent features with a Transformer classifier plus a future-latent prediction head using cosine predictive loss.
+- **Pose + V-JEPA Fusion**: pose and V-JEPA features projected to 256 dimensions, concatenated, and classified with a Transformer head.
+
+All final comparisons use class-weighted cross entropy for the binary classification objective. Thresholds are tuned on validation data under two policies: positive-class F2 and balanced accuracy.
+
+## Data Setup
+
+The project uses datasets stored on a Modal volume named `final_project_dataset`, mounted at `/data` in remote jobs. The expected root is:
+
+```text
+/data/final_project_dataset
+```
+
+Final experiments use these data pools:
+
+- **Staged data**: GMDCSA24 + LE2I + CAUCAFall
+- **Expanded staged+unstaged data**: staged data + OOPs unstaged fall videos
+
+Generated windows, features, checkpoints, and large run outputs are stored on Modal or ignored locally. They are not committed to this repository.
+
+## Repository Layout
 
 ```text
 fall_anticipation_cv/
-  notebooks/                 # Original exploratory notebooks
-  scripts/                   # Command-line training/data utilities
-  src/fall_anticipation_cv/   # Reusable Python package
-    data.py                  # Label loading, window building, dataset
-    training.py              # Train/evaluate loops
-    models/baseline.py       # Baseline SimpleVideoCNN model
+  src/fall_anticipation_cv/        # Reusable dataset/model/training package
+    data.py                       # Window construction and raw-frame datasets
+    pose_data.py                  # Pose feature datasets
+    vjepa_data.py                 # V-JEPA latent datasets
+    fusion_data.py                # Pose + V-JEPA fusion datasets
+    training_common.py            # Shared training/evaluation helpers
+    models/                       # CNN, pose, V-JEPA, and fusion model definitions
+  scripts/                        # Local data prep, extraction, training, evaluation utilities
+  modal_*.py                      # Modal entrypoints for remote preparation/training/evaluation
+  results/                        # Small JSON/CSV/Markdown summaries used for report tables/plots
+  paper/                          # LaTeX report, figures, tables, bibliography, compiled PDF
+  AI_USAGE.md                     # Generative AI usage documentation
 ```
 
-## Setup
+## Installation
+
+For local utilities and report-related scripts:
 
 ```bash
 python -m venv .venv
@@ -27,124 +60,92 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Prepare window metadata
-
-```bash
-python scripts/prepare_windows.py \
-  --data-root /path/to/final_project_dataset \
-  --output data/windows_gmdcsa24.csv
-```
-
-## Run EDA
-
-```bash
-PYTHONPATH=src python scripts/eda.py \
-  --data-root /path/to/final_project_dataset \
-  --output-dir outputs/eda
-```
-
-This writes `label_counts.csv`, `start_zero_stats.csv`, and
-`fall_start_time_distribution.png`.
-
-## Train the baseline
-
-```bash
-python scripts/train_baseline.py \
-  --windows-csv data/windows_gmdcsa24.csv \
-  --checkpoint outputs/baseline_simple_video_cnn.pt
-```
-
-Model versions kept in the repo:
-
-- `SimpleVideoCNN`: current video CNN baseline with temporal mean pooling.
-- `VideoCNNTransformerBaseline`: same frame CNN encoder with Transformer
-  temporal modeling.
-- `PoseTransformerBaseline`: RTMPose features with Transformer temporal
-  modeling.
-- `PoseGRUBaseline`: older pose-sequence baseline kept for comparison.
-- `VJEPABaseline`: frozen V-JEPA latents with a Transformer temporal classifier
-  and classification loss only.
-- `VJEPALatentPredictiveModel`: frozen V-JEPA latents with a Transformer
-  temporal classifier and future-latent prediction head. The joint objective is
-  `L = L_cls + 0.2 * L_pred` by default.
-
-## Train a Pose-Feature Baseline
-
-Use RTMPose from MMPose to extract pose features from the prepared video-window
-metadata:
-
-For local extraction, install the OpenMMLab stack first:
+For RTMPose extraction, install the OpenMMLab/MMPose stack in addition to the base requirements:
 
 ```bash
 pip install -r requirements-pose.txt
 mim install "mmengine>=0.7.0" "mmcv>=2.0.0" "mmdet>=3.0.0" "mmpose>=1.3.0"
 ```
 
-```bash
-PYTHONPATH=src python scripts/extract_rtmpose_features.py \
-  --windows-csv data/windows_gmdcsa24.csv \
-  --output-csv data/pose_windows.csv \
-  --output-dir data/rtmpose_features \
-  --pose2d human
-```
+## Modal Workflow
 
-The `human` MMPose alias uses RTMPose-m for human pose estimation. The extractor
-saves per-window NumPy arrays and writes their paths to `pose_feature_path`.
-Because the videos are on Modal, run extraction remotely with:
+Most expensive jobs were run remotely on Modal. The app definitions are split by task so runs can be resumed or repeated selectively.
+
+Common commands:
 
 ```bash
-/opt/anaconda3/bin/python -m modal run modal_app.py \
-  --extract-pose --no-train
+# Prepare fall-anticipation window metadata
+/opt/anaconda3/bin/python -m modal run modal_prepare.py
+
+# Prepare fallen-state prediction windows
+/opt/anaconda3/bin/python -m modal run modal_prepare_fallen.py
+
+# Extract RTMPose features
+/opt/anaconda3/bin/python -m modal run modal_extract_pose_l4.py
+
+# Extract frozen V-JEPA latents
+/opt/anaconda3/bin/python -m modal run modal_vjepa.py
+
+# Train feature-head models
+/opt/anaconda3/bin/python -m modal run modal_train_feature_heads.py
+
+# Train pose + V-JEPA fusion model
+/opt/anaconda3/bin/python -m modal run modal_fusion.py
 ```
 
-For a small smoke test, limit the number of videos:
+Several `modal_evaluate_*.py` and `modal_tune_*.py` files reproduce threshold tuning and per-dataset evaluation summaries used in the report.
+
+## Local Scripts
+
+Useful local scripts include:
 
 ```bash
-/opt/anaconda3/bin/python -m modal run modal_app.py \
-  --extract-pose --no-train --max-pose-videos 2
+# Data exploration
+PYTHONPATH=src python scripts/eda.py --data-root /path/to/final_project_dataset --output-dir outputs/eda
+
+# Prepare video windows locally, if data are available on disk
+PYTHONPATH=src python scripts/prepare_windows.py --data-root /path/to/final_project_dataset --output data/windows.csv
+
+# Train a V-JEPA predictive head from pre-extracted latent features
+PYTHONPATH=src python scripts/train_vjepa_predictive.py --help
+
+# Train pose, pose-predictive, or fusion heads
+PYTHONPATH=src python scripts/train_pose_baseline.py --help
+PYTHONPATH=src python scripts/train_pose_predictive.py --help
+PYTHONPATH=src python scripts/train_pose_vjepa_fusion.py --help
+
+# Recreate threshold-tradeoff plots
+PYTHONPATH=src python scripts/plot_expanded_threshold_tradeoff_curves.py --help
 ```
+
+## Results and Report Artifacts
+
+Small result summaries used by the report are committed under [`results/`](results/). The main report tables are LaTeX files under [`paper/tables/`](paper/tables/), and figures are under [`paper/figures/`](paper/figures/). The report currently includes:
+
+- staged fall-anticipation comparison
+- expanded staged+unstaged fall-anticipation comparison
+- fallen-state secondary task
+- per-dataset generalization summaries
+- predictive-loss ablation
+- threshold tradeoff curves
+- temporal ablation
+- qualitative success/failure examples
+
+Compile the paper locally from `paper/`:
 
 ```bash
-PYTHONPATH=src python scripts/train_pose_baseline.py \
-  --windows-csv data/pose_windows.csv \
-  --feature-col pose_feature_path \
-  --model transformer \
-  --checkpoint outputs/pose_transformer_baseline.pt \
-  --metrics outputs/pose_transformer_metrics.json
+latexmk -pdf main.tex
 ```
 
-Feature arrays may be shaped as `[T, F]` or `[T, J, C]`; higher-dimensional
-pose arrays are flattened per frame before entering the GRU baseline.
-
-## Run on Modal
-
-The Modal remote runner uses your Modal volume named `final_project_dataset` and
-mounts it at `/data`. The dataset files are expected under
-`/data/final_project_dataset`.
-
-```python
-volume = modal.Volume.from_name("final_project_dataset", create_if_missing=False)
-DATA_ROOT = "/data"
-label_csv_path = "/data/final_project_dataset/labels/GMDCSA24_matched.csv"
-label_map_path = "/data/final_project_dataset/labels/label2id.csv"
-```
-
-If `modal` is installed in your Anaconda Python, run:
+or, equivalently:
 
 ```bash
-/opt/anaconda3/bin/python -m modal run modal_app.py --prepare --epochs 1
+pdflatex main.tex
+bibtex main
+pdflatex main.tex
+pdflatex main.tex
 ```
 
-After the window CSV exists on the volume, you can skip preparation:
+## Notes on Large Files
 
-```bash
-/opt/anaconda3/bin/python -m modal run modal_app.py --epochs 1
-```
-
-The baseline checkpoint is written back to the Modal volume at
-`/data/final_project_dataset/outputs/baseline_simple_video_cnn.pt`.
-Metrics are written to
-`/data/final_project_dataset/outputs/baseline_metrics.json`.
-
-Large datasets, generated window CSVs, checkpoints, and run outputs are ignored
-by Git by default.
+The repository intentionally excludes raw videos, generated feature arrays, model checkpoints, and large training outputs. Those artifacts live on the Modal volume or local scratch directories and can be regenerated from the scripts above.

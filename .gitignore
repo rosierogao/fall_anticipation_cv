@@ -1,12 +1,18 @@
+# OS / editor noise
 .DS_Store
-__pycache__/
-*.py[cod]
 .ipynb_checkpoints/
 
+# Python caches and local environments
+__pycache__/
+*.py[cod]
 .venv/
 venv/
+
+# Local scratch files
+.tmp_*
 .tmp_modal/
 
+# Large/generated ML artifacts
 data/
 outputs/
 runs/
@@ -14,4 +20,16 @@ checkpoints/
 *.pt
 *.pth
 
+# LaTeX build artifacts; keep paper source, figures, tables, bibliography, and PDF
+paper/*.aux
+paper/*.blg
+paper/*.brf
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.toc
+
+# Local paper/report export; kept out of repo unless explicitly force-added
 paper/

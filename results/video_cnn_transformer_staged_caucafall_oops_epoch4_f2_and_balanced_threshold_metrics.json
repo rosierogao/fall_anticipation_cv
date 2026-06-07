@@ -1,0 +1,87 @@
+{
+  "dataset": "GMDCSA24 + LE2I + CAUCAFall + OOPs",
+  "note": "CNN Transformer tuned from the epoch-4 checkpoint on the expanded staged+unstaged split.",
+  "model": "video_cnn_transformer",
+  "windows_csv": "/data/final_project_dataset/windows_staged_caucafall_oops.csv",
+  "checkpoint": "/data/final_project_dataset/outputs/video_cnn_transformer_staged_caucafall_oops_epoch4.pt",
+  "validation_best_f2": {
+    "threshold": 0.01,
+    "precision": 0.2357902456912358,
+    "recall": 1.0,
+    "f1": 0.3816023738872404,
+    "f2": 0.6067182487261747,
+    "accuracy": 0.2357902456912358,
+    "specificity": 0.0,
+    "balanced_accuracy": 0.5,
+    "confusion_matrix": {
+      "true_negative": 0,
+      "false_positive": 2084,
+      "false_negative": 0,
+      "true_positive": 643
+    }
+  },
+  "validation_best_balanced_accuracy": {
+    "threshold": 0.3990418612957001,
+    "precision": 0.2772172065852363,
+    "recall": 0.8118195956454122,
+    "f1": 0.4133016627078384,
+    "f2": 0.5858585858585859,
+    "accuracy": 0.45654565456545654,
+    "specificity": 0.34692898272552786,
+    "balanced_accuracy": 0.5793742891854701,
+    "confusion_matrix": {
+      "true_negative": 723,
+      "false_positive": 1361,
+      "false_negative": 121,
+      "true_positive": 522
+    }
+  },
+  "test_default_threshold_0_5": {
+    "confusion_matrix": {
+      "true_negative": 2348,
+      "false_positive": 127,
+      "false_negative": 634,
+      "true_positive": 53
+    },
+    "positive_precision": 0.29444444444444445,
+    "positive_recall": 0.07714701601164484,
+    "positive_f1": 0.12226066897347176,
+    "threshold": 0.5,
+    "accuracy": 0.7593295382669196,
+    "specificity": 0.9486868686868687,
+    "balanced_accuracy": 0.5129169423492568,
+    "positive_f2": 0.09050546448087433
+  },
+  "test_at_validation_best_f2_threshold": {
+    "confusion_matrix": {
+      "true_negative": 0,
+      "false_positive": 2475,
+      "false_negative": 0,
+      "true_positive": 687
+    },
+    "positive_precision": 0.21726755218216318,
+    "positive_recall": 1.0,
+    "positive_f1": 0.3569758378799688,
+    "threshold": 0.01,
+    "accuracy": 0.21726755218216318,
+    "specificity": 0.0,
+    "balanced_accuracy": 0.5,
+    "positive_f2": 0.581218274111675
+  },
+  "test_at_validation_best_balanced_accuracy_threshold": {
+    "confusion_matrix": {
+      "true_negative": 819,
+      "false_positive": 1656,
+      "false_negative": 131,
+      "true_positive": 556
+    },
+    "positive_precision": 0.2513562386980108,
+    "positive_recall": 0.8093158660844251,
+    "positive_f1": 0.3835805450155225,
+    "threshold": 0.3990418612957001,
+    "accuracy": 0.43485135989879825,
+    "specificity": 0.33090909090909093,
+    "balanced_accuracy": 0.570112478496758,
+    "positive_f2": 0.5604838709677419
+  }
+}

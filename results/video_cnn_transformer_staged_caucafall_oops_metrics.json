@@ -1,0 +1,25 @@
+{
+  "model": "video_cnn_transformer_baseline",
+  "windows_csv": "/data/final_project_dataset/windows_staged_caucafall_oops.csv",
+  "checkpoint": "/data/final_project_dataset/outputs/video_cnn_transformer_staged_caucafall_oops.pt",
+  "epochs": 5,
+  "batch_size": 16,
+  "best_epoch": 3,
+  "val_loss": 0.6637403867950271,
+  "val_acc": 0.7341400806747341,
+  "test_loss": 0.6493869793709134,
+  "test_acc": 0.7593295382669196,
+  "class_weights": [
+    0.6810477375984192,
+    1.8808510303497314
+  ],
+  "confusion_matrix": {
+    "true_negative": 2348,
+    "false_positive": 127,
+    "false_negative": 634,
+    "true_positive": 53
+  },
+  "positive_precision": 0.29444444444444445,
+  "positive_recall": 0.07714701601164484,
+  "positive_f1": 0.12226066897347176
+}
