@@ -2,7 +2,6 @@
 
 This repository contains the code, experiment artifacts, and CS231n report for a computer-vision project on early fall anticipation from short video clips. The main task is binary prediction: given a 1.6 second observed clip sampled at 10 FPS, predict whether a fall will begin within the next 1.0 second. A secondary experiment predicts future fallen state within a 2.0 second horizon.
 
-The final report source is in [`paper/`](paper/), and the compiled PDF is [`paper/main.pdf`](paper/main.pdf).
 
 ## Current Scope
 
@@ -46,7 +45,6 @@ fall_anticipation_cv/
   scripts/                        # Local data prep, extraction, training, evaluation utilities
   modal_*.py                      # Modal entrypoints for remote preparation/training/evaluation
   results/                        # Small JSON/CSV/Markdown summaries used for report tables/plots
-  paper/                          # LaTeX report, figures, tables, bibliography, compiled PDF
   AI_USAGE.md                     # Generative AI usage documentation
 ```
 
@@ -118,33 +116,17 @@ PYTHONPATH=src python scripts/train_pose_vjepa_fusion.py --help
 PYTHONPATH=src python scripts/plot_expanded_threshold_tradeoff_curves.py --help
 ```
 
-## Results and Report Artifacts
+## Results
 
-Small result summaries used by the report are committed under [`results/`](results/). The main report tables are LaTeX files under [`paper/tables/`](paper/tables/), and figures are under [`paper/figures/`](paper/figures/). The report currently includes:
+Small result summaries are committed under [`results/`](results/). These include JSON, CSV, and Markdown outputs for:
 
-- staged fall-anticipation comparison
-- expanded staged+unstaged fall-anticipation comparison
-- fallen-state secondary task
+- staged fall-anticipation model comparisons
+- expanded staged+unstaged model comparisons
+- fallen-state secondary-task results
 - per-dataset generalization summaries
-- predictive-loss ablation
-- threshold tradeoff curves
-- temporal ablation
-- qualitative success/failure examples
-
-Compile the paper locally from `paper/`:
-
-```bash
-latexmk -pdf main.tex
-```
-
-or, equivalently:
-
-```bash
-pdflatex main.tex
-bibtex main
-pdflatex main.tex
-pdflatex main.tex
-```
+- predictive-loss ablations
+- threshold tradeoff curve points and markers
+- temporal ablation summaries
 
 ## Notes on Large Files
 
