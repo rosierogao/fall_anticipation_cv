@@ -2,6 +2,7 @@
 
 This repository contains the code, experiment artifacts, and CS231n report for a computer-vision project on early fall anticipation from short video clips. The main task is binary prediction: given a 1.6 second observed clip sampled at 10 FPS, predict whether a fall will begin within the next 1.0 second. A secondary experiment predicts future fallen state within a 2.0 second horizon.
 
+<img width="1466" height="794" alt="Screenshot 2026-06-13 at 11 16 22 AM" src="https://github.com/user-attachments/assets/53396192-5e96-426a-b9f7-bec905fbc82a" />
 
 ## Current Scope
 
